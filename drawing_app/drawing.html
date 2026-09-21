@@ -1653,24 +1653,9 @@
     }
 
     @media (max-width: 1158px) {
-      /* Keep the tablet toolbar readable by giving the app title its own row. */
+      /* Allow the controls to wrap naturally on tablet-sized screens. */
       .toolbar-primary-row {
         flex-wrap: wrap;
-      }
-
-      .titlebar {
-        flex: 1 0 100%;
-        order: 2;
-        min-width: 0;
-        margin-left: 0;
-        padding: 5px 0 0;
-        border-top: 1px solid #6b7280;
-      }
-
-      .titlebar p {
-        flex: 1;
-        padding-left: 0;
-        border-left: 0;
       }
     }
 
@@ -3462,11 +3447,19 @@
       });
       const thisEditor = editor;
       editor.addEventListener('blur', () => setTimeout(() => {
-        if (editor === thisEditor && !textDrag && document.activeElement !== thisEditor) commitText();
+        if (editor === thisEditor && !textDrag && document.activeElement !== thisEditor) {
+          commitText();
+          selectTool(false);
+        }
       }));
     }
     canvas.addEventListener('pointerdown', (event) => {
       event.preventDefault();
+      if (editor) {
+        commitText();
+        selectTool(false);
+        return;
+      }
       if (fillMode) {
         commitText();
         cancelImagePlacement();
