@@ -1533,6 +1533,10 @@
       border-left-color: #d1ccc5;
     }
 
+    html[data-theme="light"] .titlebar {
+      border-top-color: #d1ccc5;
+    }
+
     html[data-theme="light"] .instructions-link {
       color: #1d4ed8;
     }
@@ -1646,6 +1650,28 @@
     html[data-theme="light"] .more-controls-toggle,
     html[data-theme="light"] .shape-constrain-control {
       color: #1f2937;
+    }
+
+    @media (max-width: 1158px) {
+      /* Keep the tablet toolbar readable by giving the app title its own row. */
+      .toolbar-primary-row {
+        flex-wrap: wrap;
+      }
+
+      .titlebar {
+        flex: 1 0 100%;
+        order: 2;
+        min-width: 0;
+        margin-left: 0;
+        padding: 5px 0 0;
+        border-top: 1px solid #6b7280;
+      }
+
+      .titlebar p {
+        flex: 1;
+        padding-left: 0;
+        border-left: 0;
+      }
     }
 
     @media (max-width: 700px) {
