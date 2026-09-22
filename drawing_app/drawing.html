@@ -37,8 +37,8 @@
       display: flex;
       flex: 1 1 360px;
       justify-content: flex-end;
-      min-width: 280px;
-      margin-left: 6px;
+      min-width: 80px;
+      margin-left: 0;
       container-type: inline-size;
     }
 
@@ -54,12 +54,19 @@
       justify-content: flex-end;
       gap: 0 4px;
       margin: 0;
-      padding-left: 12px;
-      border-left: 1px solid #6b7280;
+      padding-left: 0;
       color: #d1d5db;
       font-size: 12px;
       line-height: 1.3;
       text-align: right;
+    }
+
+    .app-title {
+      white-space: nowrap;
+    }
+
+    .titlebar-actions {
+      white-space: nowrap;
     }
 
     .titlebar-divider {
@@ -73,10 +80,6 @@
         text-align: center;
       }
 
-      .app-title {
-        flex-basis: 100%;
-        text-align: center;
-      }
     }
 
     .tools {
@@ -272,7 +275,7 @@
 
     #lineWidth,
     #textSize {
-      width: 48px;
+      width: 52.8px;
     }
 
     input[type="range"]:focus,
@@ -334,7 +337,7 @@
     }
 
     button:hover {
-      background: #e5e7eb;
+      background: #f1f5f9;
     }
 
     button:disabled {
@@ -414,6 +417,8 @@
     .color-picker-box {
       position: relative;
       display: flex;
+      align-items: center;
+      justify-content: center;
       padding: 3px;
       border: 1px solid #6b7280;
       border-radius: 6px;
@@ -636,7 +641,7 @@
     .color-swatch:hover,
     .color-swatch.active {
       border-color: #2563d9;
-      outline: 2px solid #c4d7ff;
+      outline: 2px solid #2563d9;
       outline-offset: 1px;
     }
 
@@ -862,7 +867,7 @@
       justify-content: space-between;
       gap: 8px;
       margin: -5px -10px 0;
-      padding: 6px 7px;
+      padding: 4px 7px;
       border-radius: 9px 9px 0 0;
       color: #f8fafc;
       background: #3B4544;
@@ -1004,7 +1009,7 @@
       color: #93c5fd;
       background: transparent;
       font: inherit;
-      text-decoration: underline;
+      text-decoration: none;
     }
 
     .instructions-link:hover {
@@ -1039,12 +1044,12 @@
     .floating-help {
       position: fixed;
       z-index: 20;
-      top: 72px;
+      top: var(--floating-help-top, 72px);
       left: 24px;
       display: flex;
       flex-direction: column;
       width: min(460px, calc(100vw - 48px));
-      height: min(560px, calc(100dvh - 96px));
+      height: min(560px, calc(100dvh - var(--floating-help-top, 72px) - 24px));
       min-width: 280px;
       min-height: 220px;
       resize: both;
@@ -1119,7 +1124,7 @@
     }
 
     .floating-help.collapsed .floating-help-titlebar {
-      border-radius: 9px 9px 0 0;
+      border-radius: 9px;
     }
 
     dialog {
@@ -1138,7 +1143,7 @@
     }
 
     dialog::backdrop {
-      background: #11182780;
+      background: rgb(0 0 0 / 50%);
     }
 
     .dialog-content {
@@ -1160,6 +1165,10 @@
 
     .dialog-content p+p {
       margin-top: 10px;
+    }
+
+    .dialog-content a {
+      text-decoration: none;
     }
 
     .dialog-content ul {
@@ -1363,15 +1372,21 @@
     }
 
     html[data-theme="dark"] .tools {
-      background-color: #121212;
+      border-bottom-color: #2d2d2d;
+      background-color: #1f1f1f;
     }
 
     html[data-theme="dark"] .more-controls-row {
-      background: #1f1f1f;
+      border-top-color: #2d2d2d;
+      background: #121212;
+    }
+
+    html[data-theme="dark"] .tool-divider {
+      background: #2d2d2d;
     }
 
     html[data-theme="dark"] #canvas-area {
-      background: #fff;
+      background: #292929;
     }
 
     html[data-theme="dark"] button {
@@ -1385,33 +1400,44 @@
     }
 
     html[data-theme="dark"] .tools button {
-      border-color: #2d2d2d;
-      color: #f8fafc;
-      background: #1c1c1c;
+      border-color: #3a3a3a;
+      color: #cccccc;
+      background: #303030;
+    }
+
+    html[data-theme="dark"] .titlebar p,
+    html[data-theme="dark"] .more-controls-toggle,
+    html[data-theme="dark"] .shape-constrain-control,
+    html[data-theme="dark"] .tool-segment input:not(:checked)+span {
+      color: #cccccc;
     }
 
     html[data-theme="dark"] .tools button:hover {
-      background: #242424;
+      background: #383838;
     }
 
     html[data-theme="dark"] .tool-segment {
-      border-color: #2d2d2d;
-      background: #1c1c1c;
+      border-color: #3a3a3a;
+      background: #303030;
       box-shadow: none;
+    }
+
+    html[data-theme="dark"] .tool-segment label:hover input:not(:checked)+span {
+      background: #383838;
     }
 
     html[data-theme="dark"] #fill,
     html[data-theme="dark"] #import,
     html[data-theme="dark"] #download {
-      border-color: #2d2d2d;
-      color: #f8fafc;
-      background: #1c1c1c;
+      border-color: #3a3a3a;
+      color: #cccccc;
+      background: #303030;
     }
 
     html[data-theme="dark"] #fill:hover,
     html[data-theme="dark"] #import:hover,
     html[data-theme="dark"] #download:hover {
-      background: #242424;
+      background: #383838;
     }
 
     html[data-theme="dark"] .more-controls-row .icon-action {
@@ -1437,19 +1463,32 @@
 
     html[data-theme="dark"] #select:not(.active),
     html[data-theme="dark"] #selectMode {
-      border-color: #2d2d2d;
-      background: #1c1c1c;
+      border-color: #3a3a3a;
+      background: #303030;
+    }
+
+    html[data-theme="dark"] .selection-control {
+      border-color: #3a3a3a;
+      background: #303030;
+    }
+
+    html[data-theme="dark"] #select {
+      border-right-color: #3a3a3a;
     }
 
     html[data-theme="dark"] #select:not(.active):hover,
     html[data-theme="dark"] #selectMode:hover {
-      background: #242424;
+      background: #383838;
     }
 
-    html[data-theme="dark"] .palette,
-    html[data-theme="dark"] .color-picker-box {
+    html[data-theme="dark"] .palette {
       background: #1c1c1c;
       border-color: #2d2d2d;
+    }
+
+    html[data-theme="dark"] .color-picker-box {
+      background: #303030;
+      border-color: #3a3a3a;
     }
 
     html[data-theme="dark"] .selection-menu,
@@ -1460,19 +1499,92 @@
       background: #1f2937;
     }
 
+    html[data-theme="dark"] .selection-menu {
+      border-color: #3a3a3a;
+      background: #303030;
+    }
+
+    html[data-theme="dark"] #instructionsDialog,
+    html[data-theme="dark"] #preferencesDialog,
+    html[data-theme="dark"] #downloadBackgroundDialog,
+    html[data-theme="dark"] .floating-help {
+      background: #1f1f1f;
+    }
+
+    html[data-theme="dark"] #instructionsDialog button,
+    html[data-theme="dark"] #preferencesDialog button,
+    html[data-theme="dark"] #downloadBackgroundDialog button,
+    html[data-theme="dark"] .floating-help button {
+      border-color: #555555;
+      color: #cccccc;
+      background: #2a2a2a;
+    }
+
+    html[data-theme="dark"] #instructionsDialog button:hover,
+    html[data-theme="dark"] #preferencesDialog button:hover,
+    html[data-theme="dark"] #downloadBackgroundDialog button:hover,
+    html[data-theme="dark"] .floating-help button:hover {
+      background: #3a3a3a;
+    }
+
+    html[data-theme="dark"] #instructionsDialog .help-view-controls,
+    html[data-theme="dark"] .floating-help .help-view-controls {
+      border-color: #555555;
+    }
+
+    html[data-theme="dark"] #instructionsDialog .help-view-controls button,
+    html[data-theme="dark"] .floating-help .help-view-controls button {
+      border-right-color: #555555;
+    }
+
+    html[data-theme="dark"] #instructionsDialog .help-view-controls button[aria-pressed="true"],
+    html[data-theme="dark"] .floating-help .help-view-controls button[aria-pressed="true"] {
+      color: #ffffff;
+      background: #3a3a3a;
+      box-shadow: inset 0 0 0 1px #666666;
+    }
+
+    html[data-theme="dark"] #instructionsDialog a,
+    html[data-theme="dark"] .floating-help a {
+      color: #cccccc;
+    }
+
+    html[data-theme="dark"] #instructionsDialog a:hover,
+    html[data-theme="dark"] .floating-help a:hover {
+      color: #ffffff;
+    }
+
     html[data-theme="dark"] .selection-menu button {
-      color: #f8fafc;
-      background: #1c1c1c;
+      color: #cccccc;
+      background: #303030;
     }
 
     html[data-theme="dark"] .selection-menu button:hover,
     html[data-theme="dark"] .selection-menu button[aria-current="true"] {
-      color: #f8fafc;
+      color: #cccccc;
       background: #242424;
     }
 
     html[data-theme="dark"] .tools button img,
     html[data-theme="dark"] .tools #select img[src*="noun_Missing"] {
+      filter: brightness(0) invert(1);
+    }
+
+    html[data-theme="dark"] .selection-menu img[src*="noun_Missing"] {
+      filter: brightness(0) invert(1);
+    }
+
+    html[data-theme="dark"] .image-rotate-handle {
+      filter: invert(1);
+    }
+
+    html[data-theme="dark"] .image-rotate-handle::after {
+      background: #000000;
+    }
+
+    html[data-theme="dark"] .image-effects-handle,
+    html[data-theme="dark"] .image-effects-handle:hover {
+      background: url('assets/noun_Contrast_233128_@700.png') center / 14.4px 14.4px no-repeat transparent;
       filter: brightness(0) invert(1);
     }
 
@@ -1489,6 +1601,33 @@
       border-color: #64748b;
     }
 
+    html[data-theme="dark"] #instructionsDialog .dialog-content hr,
+    html[data-theme="dark"] #preferencesDialog .preferences-form fieldset {
+      border-color: #555555;
+    }
+
+    html[data-theme="dark"] .floating-help {
+      border-color: #3a3a3a;
+    }
+
+    html[data-theme="dark"] .floating-help-titlebar {
+      padding: 4px 7px;
+      border-radius: 9px 9px 0 0;
+      color: #cccccc;
+      background: #121212;
+    }
+
+    html[data-theme="dark"] .floating-help-titlebar button,
+    html[data-theme="dark"] .floating-help-titlebar button:hover {
+      color: #cccccc;
+      background: transparent;
+    }
+
+    html[data-theme="dark"] .floating-help-footer {
+      padding: 0 20px 12px;
+      background: #1f1f1f;
+    }
+
     html[data-theme="dark"] .preferences-form select,
     html[data-theme="dark"] .preferences-form input[type="number"],
     html[data-theme="dark"] .selection-blur-control select {
@@ -1497,18 +1636,110 @@
       background-color: #374151;
     }
 
-    html[data-theme="dark"] .floating-help-footer {
-      background: #1f2937;
+    html[data-theme="dark"] #preferencesDialog .preferences-form select,
+    html[data-theme="dark"] #preferencesDialog .preferences-form input[type="number"] {
+      border-color: #555555;
+      color: #cccccc;
+      background-color: #2a2a2a;
     }
 
-    html[data-theme="dark"] .instructions-link {
-      border-color: transparent;
-      color: #93c5fd;
+    html[data-theme="dark"] #preferencesDialog input[type="radio"],
+    html[data-theme="dark"] #preferencesDialog input[type="checkbox"] {
+      accent-color: #888888;
+    }
+
+    html[data-theme="dark"] .selection-blur-control {
+      border-color: #3a3a3a;
+      color: #d1d5db;
+      background: #1f1f1f;
+    }
+
+    html[data-theme="dark"] .selection-effects-title {
+      padding: 4px 7px;
+      border-bottom: 0;
+      color: #cccccc;
+      background: #121212;
+    }
+
+    html[data-theme="dark"] .selection-blur-control button {
+      border-color: #555555;
+      color: #cccccc;
+      background: #2a2a2a;
+    }
+
+    html[data-theme="dark"] .selection-blur-control button:hover {
+      background: #3a3a3a;
+    }
+
+    html[data-theme="dark"] .selection-effects-title button,
+    html[data-theme="dark"] .selection-effects-title button:hover {
+      border: 0;
+      color: #cccccc;
       background: transparent;
     }
 
-    html[data-theme="dark"] .instructions-link:hover {
-      color: #dbeafe;
+    html[data-theme="dark"] .selection-effects-section.divided {
+      border-color: #555555;
+    }
+
+    html[data-theme="dark"] .selection-blur-control select {
+      border-color: #555555;
+      color: #cccccc;
+      background-color: #2a2a2a;
+    }
+
+    html[data-theme="dark"] .selection-blur-control select[data-shadow-direction] {
+      background-image: linear-gradient(#555555, #555555), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23cccccc' stroke-width='1.6'/%3E%3C/svg%3E");
+    }
+
+    html[data-theme="dark"] #instructionsDialog,
+    html[data-theme="dark"] .floating-help,
+    html[data-theme="dark"] .floating-help-content {
+      scrollbar-color: #555555 #1f1f1f;
+    }
+
+    html[data-theme="dark"] #instructionsDialog::-webkit-scrollbar,
+    html[data-theme="dark"] .floating-help::-webkit-scrollbar,
+    html[data-theme="dark"] .floating-help-content::-webkit-scrollbar {
+      width: 12px;
+    }
+
+    html[data-theme="dark"] #instructionsDialog::-webkit-scrollbar-track,
+    html[data-theme="dark"] .floating-help::-webkit-scrollbar-track,
+    html[data-theme="dark"] .floating-help-content::-webkit-scrollbar-track {
+      background: #1f1f1f;
+    }
+
+    html[data-theme="dark"] #instructionsDialog::-webkit-scrollbar-thumb,
+    html[data-theme="dark"] .floating-help::-webkit-scrollbar-thumb,
+    html[data-theme="dark"] .floating-help-content::-webkit-scrollbar-thumb {
+      border: 3px solid #1f1f1f;
+      border-radius: 999px;
+      background: #555555;
+    }
+
+    html[data-theme="dark"] .selection-blur-control input[type="range"]::-webkit-slider-thumb {
+      border-color: #cccccc;
+      background: #888888;
+    }
+
+    html[data-theme="dark"] .selection-blur-control input[type="range"]::-moz-range-thumb {
+      border-color: #cccccc;
+      background: #888888;
+    }
+
+    html[data-theme="dark"] .floating-help-footer {
+      background: #1f1f1f;
+    }
+
+    html[data-theme="dark"] .titlebar .instructions-link {
+      border-color: transparent;
+      color: #60a5fa;
+      background: transparent;
+    }
+
+    html[data-theme="dark"] .titlebar .instructions-link:hover {
+      color: #93c5fd;
       background: transparent;
     }
 
@@ -1530,11 +1761,6 @@
 
     html[data-theme="light"] .titlebar p {
       color: #334155;
-      border-left-color: #d1ccc5;
-    }
-
-    html[data-theme="light"] .titlebar {
-      border-top-color: #d1ccc5;
     }
 
     html[data-theme="light"] .instructions-link {
@@ -1559,6 +1785,10 @@
       color: #fff;
     }
 
+    html[data-theme="light"] .tool-segment label:hover input:not(:checked)+span {
+      background: #f1f5f9;
+    }
+
     html[data-theme="light"] .palette {
       border-color: #d1ccc5;
       background: #f6f4f1;
@@ -1580,7 +1810,7 @@
     html[data-theme="light"] #import:hover,
     html[data-theme="light"] #download:hover {
       border-color: #c4beb6;
-      background: #fbfaf8;
+      background: #ffffff;
     }
 
     html[data-theme="light"] .more-controls-row .icon-action {
@@ -1590,7 +1820,7 @@
 
     html[data-theme="light"] .more-controls-row .icon-action:hover {
       border-color: #b8b1a8;
-      background: #f1eeea;
+      background: #f6f4f1;
     }
 
     html[data-theme="light"] .more-controls-row .icon-action.shape-active {
@@ -1613,7 +1843,7 @@
     html[data-theme="light"] #select:not(.active):hover,
     html[data-theme="light"] #selectMode:hover {
       border-color: #c4beb6;
-      background: #fbfaf8;
+      background: #ffffff;
     }
 
     html[data-theme="light"] input[type="checkbox"] {
@@ -1684,7 +1914,7 @@
 
       #lineWidth,
       #textSize {
-        width: 68px;
+        width: 74.8px;
       }
 
       .shape-controls-group {
@@ -1782,13 +2012,9 @@
       }
 
       .titlebar {
-        flex: 1 0 100%;
-        order: 2;
         min-width: 0;
         margin-left: 0;
-        padding: 5px 0 0;
-        border-top: 1px solid #6b7280;
-        border-left: 0;
+        padding: 0;
       }
 
       .titlebar p {
@@ -1867,7 +2093,7 @@
               aria-label="Golden yellow" title="Color Swatches"></button>
             <button class="color-swatch" type="button" data-color="#E45756" style="background:#E45756"
               aria-label="Coral red" title="Color Swatches"></button>
-            <button class="color-swatch" type="button" data-color="#263238" style="background:#263238"
+            <button class="color-swatch" type="button" data-color="#121212" style="background:#121212"
               aria-label="Charcoal" title="Color Swatches"></button>
             <button class="color-swatch" type="button" data-color="#FFFFFF" style="background:#FFFFFF"
               aria-label="White" title="Color Swatches"></button>
@@ -1898,10 +2124,11 @@
           </div>
         </div>
         <div class="titlebar">
-          <p><span class="app-title"><strong>Dave's Sketch Pad</strong></span><span class="titlebar-divider"
-              aria-hidden="true">&middot;</span><button id="instructionsLink" class="instructions-link"
-              type="button">Help</button><span class="titlebar-divider" aria-hidden="true">&middot;</span><button
-              id="preferencesLink" class="instructions-link" type="button">Prefs</button></p>
+          <p><span class="app-title"><strong>Dave's Sketch Pad</strong></span><span class="titlebar-actions"><span
+                class="titlebar-divider" aria-hidden="true">&middot;</span><button id="instructionsLink"
+                class="instructions-link" type="button">Help</button><span class="titlebar-divider"
+                aria-hidden="true">&nbsp;&middot;</span><button id="preferencesLink" class="instructions-link"
+                type="button">Prefs</button></span></p>
         </div>
       </div>
       <div id="moreControlsRow" class="toolbar-row more-controls-row" hidden>
@@ -1955,12 +2182,15 @@
           Free-form. Drag selections to move them. An active selection crops an import.</p>
         <p><strong>Shortcuts:</strong> Shift constrains; Ctrl+Shift/Ctrl+Alt make a square/rectangle; add X for a
           circle/ellipse. L outlines a selection; E opens effects; F toggles Fill; M mirrors; W toggles Wash; D toggles
-          theme; R restores defaults. Ctrl+C/X/V copies, cuts, and pastes; Ctrl+Z/Y undoes and redoes.</p>
+          theme; R restores defaults. Arrow keys change color (left/right) or size (up/down); 1/2/3/4 do the same
+          outside text entry. Ctrl+C/X/V copies, cuts, and pastes; Ctrl+Z/Y undoes and redoes.</p>
         <p><strong>Preferences:</strong> Save color, Wash, selection mode, default theme, line width, and text size.</p>
         <p><strong>Help:</strong> Float keeps Help above the canvas. Drag its title bar, double-click to collapse or
           expand, resize from the lower-right, or close it with ×, Close, or R.</p>
       </div>
       <div id="verboseHelp" hidden>
+        <p><strong>Introduction:</strong> This web app is meant to duplicate the ease and speed of drawing in a room on
+          a whiteboard. It doesn't have every feature but has numerous shortcuts built in for speed.</p>
         <p><strong>Keyboard shortcuts:</strong></p>
         <ul>
           <li><strong>`</strong> toggles Draw and Text and returns Select to Draw; <strong>W</strong> toggles Wash;
@@ -1997,8 +2227,8 @@
           rectangle, Ctrl+Shift+X makes a perfect circle, and Ctrl+Alt+X makes an ellipse. Shapes start from the point
           where you begin the drag.</p>
         <p><strong>Text:</strong> Choose Text, then click the canvas and type. Drag the Move icon at the left of the
-          text field to reposition it; release the pointer to drop it. Press Enter or click away to place the text. The
-          I-beam previews its size.</p>
+          text field to reposition it; release the pointer to drop it. Press Enter to place the text, or click elsewhere
+          on the canvas to place it and start another text box. The I-beam previews its size.</p>
         <p><strong>Images, selection and files:</strong> The Import Picture button imports images as a movable preview,
           fitting large images within the canvas without enlarging smaller ones. With an active selection, an imported
           image retains its original pixel size and is cropped to the selection; a free-form selection uses its lasso
@@ -2012,7 +2242,8 @@
           drag it and use the handles to scale its contents; press Enter to commit a moved or resized selection. The
           rotate handle appears after moving or flipping a selection. Flipping a lasso converts it to a rectangular
           selection. A pasted selection opens as an import-style preview. Clear asks for confirmation, and Download PNG
-          saves a timestamped PNG with a white background. Mouse, touch, and pen input are supported.</p>
+          saves a timestamped PNG; in Dark theme, choose the dark canvas background or white. Mouse, touch, and pen
+          input are supported.</p>
         <p><strong>Toolbar actions:</strong> Use the Import Image icon to add art and the Download PNG icon to save your
           work. Clear sits at the far right of the toolbar and asks for confirmation before removing the canvas.</p>
         <p><strong>Preferences:</strong> Open Preferences beside Instructions to choose the beginning color source,
@@ -2027,25 +2258,22 @@
           <code>sketchPadPreferences</code>. It contains only your tool settings (color, selection mode, Wash, More
           controls, theme, line width, and text size), is available only to this site, and expires after one year.</p>
         <hr>
-        <p class="attribution"><b>Attribution</b><br /><b>Missing</b> icon by Manglayang studio from <a
+        <p class="attribution"><b>Attribution</b><br /><b>Missing</b> by Manglayang studio from <a
             href="https://thenounproject.com/browse/icons/term/missing/" target="_blank" title="Missing Icons">Noun
-            Project</a> (CC BY 3.0) | <B>Add picture</B> icon by SUBAIDA from <a
+            Project</a> (CC BY 3.0) | <B>Add picture</B> by SUBAIDA from <a
             href="https://thenounproject.com/browse/icons/term/add-picture/" target="_blank"
-            title="add picture Icons">Noun Project</a> (CC BY 3.0) | <b>Download</b> icon by Ahsan Damar from <a
+            title="add picture Icons">Noun Project</a> (CC BY 3.0) | <b>Download</b> by Ahsan Damar from <a
             href="https://thenounproject.com/browse/icons/term/download/" target="_blank" title="Download Icons">Noun
-            Project</a> (CC BY 3.0) | <b>Rotate</b> icon by Colourcreatype from <a
+            Project</a> (CC BY 3.0) | <b>Rotate</b> by Colourcreatype from <a
             href="https://thenounproject.com/browse/icons/term/rotate/" target="_blank" title="Rotate Icons">Noun
-            Project</a> (CC BY 3.0) | <b>Move</b> icon by ICONIC from <a
+            Project</a> (CC BY 3.0) | <b>Move</b> by ICONIC from <a
             href="https://thenounproject.com/browse/icons/term/move/" target="_blank" title="Move Icons">Noun
-            Project</a> (CC BY 3.0) | <b>Lasso</b> icon by Gregor Cresnar from <a
+            Project</a> (CC BY 3.0) | <b>Lasso</b> by Gregor Cresnar from <a
             href="https://thenounproject.com/browse/icons/term/lasso/" target="_blank" title="Lasso Icons">Noun
-            Project</a> (CC BY 3.0) | <b>Fill</b> icon by Neneng Fadliyah from <a
+            Project</a> (CC BY 3.0) | <b>Fill</b> by Neneng Fadliyah from <a
             href="https://thenounproject.com/browse/icons/term/fill/" target="_blank" title="fill Icons">Noun
             Project</a> (CC BY 3.0)
-
-          | <b>
-            <Redo>
-          </b> by Riyan Resdian from <a href="https://thenounproject.com/browse/icons/term/redo/" target="_blank"
+          | <b>Redo</b> by Riyan Resdian from <a href="https://thenounproject.com/browse/icons/term/redo/" target="_blank"
             title="redo Icons">Noun Project</a> (CC BY 3.0)
           | <b>Undo</b> by Riyan Resdian from <a href="https://thenounproject.com/browse/icons/term/undo/"
             target="_blank" title="Undo Icons">Noun Project</a> (CC BY 3.0)
@@ -2059,7 +2287,6 @@
             title="copy Icons">Noun Project</a> (CC BY 3.0)
           | <b>Paste</b> by Feri Saputra from <a href="https://thenounproject.com/browse/icons/term/paste/"
             target="_blank" title="paste Icons">Noun Project</a> (CC BY 3.0)
-
           | <b>Mirror</b> by Fahad Hashmi from <a href="https://thenounproject.com/browse/icons/term/mirror/"
             target="_blank" title="mirror Icons">Noun Project</a> (CC BY 3.0)
           | <b>Draw</b> by Gregor Cresnar from <a href="https://thenounproject.com/browse/icons/term/draw/"
@@ -2067,7 +2294,7 @@
 
           | <b>Contrast</b> by Noe Araujo from <a href="https://thenounproject.com/browse/icons/term/contrast/"
             target="_blank" title="Contrast Icons">Noun Project</a> (CC BY 3.0)</p>
-        <p>Version 2.1 &ndash; 9/18/26 &copy; D. Granholm</p>
+        <p>Version 2.1 &ndash; 9/18/26 &copy; <a href="mailto:david.granholm@gmail.com">D. Granholm</a></p>
       </div>
       <form method="dialog"><button id="floatHelp" type="button">Float</button><button type="submit">Close</button>
       </form>
@@ -2080,6 +2307,17 @@
       <form method="dialog">
         <button type="submit" value="cancel">Cancel</button>
         <button id="confirmClear" type="submit" value="confirm">Clear canvas</button>
+      </form>
+    </div>
+  </dialog>
+  <dialog id="downloadBackgroundDialog" aria-labelledby="downloadBackgroundTitle">
+    <div class="dialog-content">
+      <h2 id="downloadBackgroundTitle">Download background</h2>
+      <p>Keep the dark canvas background in the PNG, or re-render it on white?</p>
+      <form method="dialog">
+        <button type="submit" value="cancel">Cancel</button>
+        <button type="submit" value="dark">Keep dark background</button>
+        <button type="submit" value="white">Re-render on white</button>
       </form>
     </div>
   </dialog>
@@ -2096,26 +2334,29 @@
               <option value="#2A9D8F">Teal</option>
               <option value="#F3B61F">Golden yellow</option>
               <option value="#E45756">Coral red</option>
-              <option value="#263238">Charcoal</option>
+              <option value="#121212">Charcoal</option>
               <option value="#FFFFFF">White</option>
             </select><span id="preferenceSwatchPreview" class="preference-swatch" aria-hidden="true"></span></label>
           <label><input id="preferencePickerSource" type="radio" name="preferenceColorSource" value="picker"> Color
             picker <input id="preferenceColor" type="color" value="#3E6CA8"></label>
         </fieldset>
-        <label>Default Wash <input id="preferenceWash" type="checkbox"></label>
-        <label>Default selection <select id="preferenceSelectionMode" class="preference-value">
-            <option value="rect">Rectangle</option>
-            <option value="lasso">Free-form</option>
-          </select></label>
-        <label>Show More controls <input id="preferenceMoreControls" type="checkbox"></label>
-        <label>Default theme <select id="preferenceTheme" class="preference-value">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select></label>
-        <label>Initial line width <input id="preferenceLineWidth" class="preference-value" type="number" min="1"
-            max="40" value="5"></label>
-        <label>Initial text size <input id="preferenceTextSize" class="preference-value" type="number" min="12" max="72"
-            value="34"></label>
+        <fieldset>
+          <legend>Defaults</legend>
+          <label>Wash <input id="preferenceWash" type="checkbox"></label>
+          <label>Selection <select id="preferenceSelectionMode" class="preference-value">
+              <option value="rect">Rectangle</option>
+              <option value="lasso">Free-form</option>
+            </select></label>
+          <label>Show More controls <input id="preferenceMoreControls" type="checkbox"></label>
+          <label>Theme <select id="preferenceTheme" class="preference-value">
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select></label>
+          <label>Initial line width <input id="preferenceLineWidth" class="preference-value" type="number" min="1"
+              max="40" value="5"></label>
+          <label>Initial text size <input id="preferenceTextSize" class="preference-value" type="number" min="12" max="72"
+              value="34"></label>
+        </fieldset>
         <div class="action-buttons">
           <button id="restorePreferences" type="button">Restore defaults</button>
           <button type="button" id="cancelPreferences">Cancel</button>
@@ -2144,6 +2385,7 @@
     const helpVerbose = document.getElementById('helpVerbose');
     const floatHelp = document.getElementById('floatHelp');
     const clearDialog = document.getElementById('clearDialog');
+    const downloadBackgroundDialog = document.getElementById('downloadBackgroundDialog');
     const preferencesDialog = document.getElementById('preferencesDialog');
     const preferencesForm = document.getElementById('preferencesForm');
     const preferenceSwatchSource = document.getElementById('preferenceSwatchSource');
@@ -2205,6 +2447,9 @@
       const panel = document.createElement('section');
       panel.id = 'floatingHelp';
       panel.className = 'floating-help';
+      if (!moreControlsRow.hidden) {
+        panel.style.setProperty('--floating-help-top', `${Math.ceil(moreControlsRow.getBoundingClientRect().bottom) + 8}px`);
+      }
       panel.setAttribute('role', 'dialog');
       panel.setAttribute('aria-label', 'Sketch Pad help');
       const titlebar = document.createElement('div');
@@ -2279,6 +2524,9 @@
     document.getElementById('instructionsLink').addEventListener('click', () => {
       setHelpView('terse');
       instructionsDialog.showModal();
+    });
+    instructionsDialog.addEventListener('click', (event) => {
+      if (event.target === instructionsDialog) instructionsDialog.close();
     });
     helpTerse.addEventListener('click', () => setHelpView('terse'));
     helpVerbose.addEventListener('click', () => setHelpView('verbose'));
@@ -2485,7 +2733,7 @@
     }
     function lightWashSwatchColor(hex) {
       const value = hex.replace('#', '');
-      const base = [246, 244, 241];
+      const base = [48, 48, 48];
       return `rgb(${[0, 2, 4].map((offset, index) => Math.round(Number.parseInt(value.slice(offset, offset + 2), 16) * .3 + base[index] * .7)).join(', ')})`;
     }
     function calculateConstrainedBox(startPoint, currentPoint, modifiers) {
@@ -3456,8 +3704,10 @@
     canvas.addEventListener('pointerdown', (event) => {
       event.preventDefault();
       if (editor) {
+        const point = coordinates(event);
         commitText();
-        selectTool(false);
+        if (textTool.checked && point.x <= canvas.clientWidth - 200) addText(point);
+        else selectTool(false);
         return;
       }
       if (fillMode) {
@@ -4393,7 +4643,7 @@
       pendingImage.y = point.y - imageDrag.offsetY;
       updateImagePreview();
     });
-    document.getElementById('download').addEventListener('click', () => {
+    function downloadCanvas(backgroundColor) {
       commitText();
       const link = document.createElement('a');
       const now = new Date();
@@ -4406,11 +4656,23 @@
       exportCanvas.width = canvas.width;
       exportCanvas.height = canvas.height;
       const exportContext = exportCanvas.getContext('2d');
-      exportContext.fillStyle = '#ffffff';
+      exportContext.fillStyle = backgroundColor;
       exportContext.fillRect(0, 0, exportCanvas.width, exportCanvas.height);
       exportContext.drawImage(canvas, 0, 0);
       link.href = exportCanvas.toDataURL('image/png');
       link.click();
+    }
+    document.getElementById('download').addEventListener('click', () => {
+      if (document.documentElement.dataset.theme === 'dark') {
+        commitText();
+        downloadBackgroundDialog.showModal();
+        return;
+      }
+      downloadCanvas('#ffffff');
+    });
+    downloadBackgroundDialog.addEventListener('close', () => {
+      if (downloadBackgroundDialog.returnValue === 'dark') downloadCanvas('#292929');
+      if (downloadBackgroundDialog.returnValue === 'white') downloadCanvas('#ffffff');
     });
     window.addEventListener('resize', resize);
     resize();
