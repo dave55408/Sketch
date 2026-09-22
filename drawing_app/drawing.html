@@ -1507,6 +1507,7 @@
     html[data-theme="dark"] #instructionsDialog,
     html[data-theme="dark"] #preferencesDialog,
     html[data-theme="dark"] #downloadBackgroundDialog,
+    html[data-theme="dark"] #clearDialog,
     html[data-theme="dark"] .floating-help {
       background: #1f1f1f;
     }
@@ -1514,6 +1515,7 @@
     html[data-theme="dark"] #instructionsDialog button,
     html[data-theme="dark"] #preferencesDialog button,
     html[data-theme="dark"] #downloadBackgroundDialog button,
+    html[data-theme="dark"] #clearDialog button,
     html[data-theme="dark"] .floating-help button {
       border-color: #555555;
       color: #cccccc;
@@ -1523,6 +1525,7 @@
     html[data-theme="dark"] #instructionsDialog button:hover,
     html[data-theme="dark"] #preferencesDialog button:hover,
     html[data-theme="dark"] #downloadBackgroundDialog button:hover,
+    html[data-theme="dark"] #clearDialog button:hover,
     html[data-theme="dark"] .floating-help button:hover {
       background: #3a3a3a;
     }
@@ -1586,6 +1589,11 @@
     html[data-theme="dark"] .image-effects-handle:hover {
       background: url('assets/noun_Contrast_233128_@700.png') center / 14.4px 14.4px no-repeat transparent;
       filter: brightness(0) invert(1);
+    }
+
+    html[data-theme="dark"] .lasso-outline polygon,
+    html[data-theme="dark"] .lasso-draft polyline {
+      stroke: #ffffff;
     }
 
     html[data-theme="dark"] .dialog-content p,
