@@ -956,11 +956,27 @@
       padding: 0 20px 0 2px;
       appearance: none;
       -webkit-appearance: none;
-      background-image: linear-gradient(#cbd5e1, #cbd5e1), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23333' stroke-width='1.6'/%3E%3C/svg%3E");
+      background-image: linear-gradient(#cbd5e1, #cbd5e1), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23333' stroke-width='2.4'/%3E%3C/svg%3E");
       background-position: right 19px center, right 6px center;
       background-size: 1px calc(100% - 8px), 10px 6px;
       background-repeat: no-repeat;
       line-height: 25px;
+      position: relative;
+      top: -6px;
+    }
+
+    .selection-blur-control select[data-shadow-direction] option:not([value="none"]) {
+      -webkit-text-stroke: .5px currentColor;
+    }
+
+    .selection-blur-control select[data-shadow-direction] option:is([value="n"], [value="e"], [value="s"], [value="w"]) {
+      font-size: 16px;
+    }
+
+    .selection-blur-control select[data-shadow-direction]:has(option:checked) {
+      color: #60a5fa;
+      -webkit-text-stroke: 1px #000;
+      paint-order: stroke fill;
     }
 
     .selection-blur-control select option {
@@ -969,7 +985,12 @@
     }
 
     .selection-blur-control select option:not([value="none"]) {
+      color: #6B7280;
       font-weight: 800;
+    }
+
+    .selection-blur-control select[data-shadow-direction] option[value="none"] {
+      color: #6B7280;
     }
 
     .selection-blur-control output {
@@ -1371,6 +1392,10 @@
       color: #e5e7eb;
     }
 
+    html[data-theme="dark"] .text-move-handle {
+      filter: brightness(0) invert(1);
+    }
+
     html[data-theme="dark"] .tools {
       border-bottom-color: #2d2d2d;
       background-color: #1f1f1f;
@@ -1378,7 +1403,7 @@
 
     html[data-theme="dark"] .more-controls-row {
       border-top-color: #2d2d2d;
-      background: #121212;
+      background: #181818;
     }
 
     html[data-theme="dark"] .tool-divider {
@@ -1386,7 +1411,7 @@
     }
 
     html[data-theme="dark"] #canvas-area {
-      background: #292929;
+      background: #121212;
     }
 
     html[data-theme="dark"] button {
@@ -1697,7 +1722,7 @@
     }
 
     html[data-theme="dark"] .selection-blur-control select[data-shadow-direction] {
-      background-image: linear-gradient(#555555, #555555), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23cccccc' stroke-width='1.6'/%3E%3C/svg%3E");
+      background-image: linear-gradient(#555555, #555555), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23cccccc' stroke-width='2.4'/%3E%3C/svg%3E");
     }
 
     html[data-theme="dark"] #instructionsDialog,
@@ -2094,17 +2119,17 @@
         <div class="tool-color-group">
           <div class="palette" aria-label="Preset colors">
             <button class="color-swatch active" type="button" data-color="#3E6CA8" style="background:#3E6CA8"
-              aria-label="Blue" title="Color Swatches"></button>
+              aria-label="Blue" title="Swatch: Blue"></button>
             <button class="color-swatch" type="button" data-color="#2A9D8F" style="background:#2A9D8F" aria-label="Teal"
-              title="Color Swatches"></button>
+              title="Swatch: Teal"></button>
             <button class="color-swatch" type="button" data-color="#F3B61F" style="background:#F3B61F"
-              aria-label="Golden yellow" title="Color Swatches"></button>
+              aria-label="Golden yellow" title="Swatch: Golden yellow"></button>
             <button class="color-swatch" type="button" data-color="#E45756" style="background:#E45756"
-              aria-label="Coral red" title="Color Swatches"></button>
-            <button class="color-swatch" type="button" data-color="#121212" style="background:#121212"
-              aria-label="Charcoal" title="Color Swatches"></button>
+              aria-label="Coral red" title="Swatch: Coral red"></button>
+            <button class="color-swatch" type="button" data-color="#121212" data-dark-color="#080808" style="background:#121212"
+              aria-label="Charcoal" title="Swatch: Charcoal"></button>
             <button class="color-swatch" type="button" data-color="#FFFFFF" style="background:#FFFFFF"
-              aria-label="White" title="Color Swatches"></button>
+              aria-label="White" title="Swatch: White"></button>
           </div>
           <label id="colorLabel">Color <span class="color-picker-box"><input id="color" type="color" value="#3E6CA8"
                 title="Color Picker"></span></label>
@@ -2189,7 +2214,7 @@
         <p><strong>Select and import:</strong> Press S to select; press it twice quickly to switch Rectangle and
           Free-form. Drag selections to move them. An active selection crops an import.</p>
         <p><strong>Shortcuts:</strong> Shift constrains; Ctrl+Shift/Ctrl+Alt make a square/rectangle; add X for a
-          circle/ellipse. L outlines a selection; E opens effects; F toggles Fill; M mirrors; W toggles Wash; D toggles
+          circle/ellipse. L outlines a selection; E opens effects; F toggles Fill; M mirrors; W toggles Wash; T toggles
           theme; R restores defaults. Arrow keys change color (left/right) or size (up/down); 1/2/3/4 do the same
           outside text entry. Ctrl+C/X/V copies, cuts, and pastes; Ctrl+Z/Y undoes and redoes.</p>
         <p><strong>Preferences:</strong> Save color, Wash, selection mode, default theme, line width, and text size.</p>
@@ -2198,11 +2223,12 @@
       </div>
       <div id="verboseHelp" hidden>
         <p><strong>Introduction:</strong> This web app is meant to duplicate the ease and speed of drawing in a room on
-          a whiteboard. It mostly sticks to the essentials and has numerous shortcuts built in for speed.</p>
+          a whiteboard. It mostly sticks to the essentials and has numerous shortcuts built in for speed. The workflow is 
+          optimzied for quickly switching between line drawing and text entry.</p>
         <p><strong>Keyboard shortcuts:</strong></p>
         <ul>
           <li><strong>`</strong> toggles Draw and Text and returns Select to Draw; <strong>W</strong> toggles Wash;
-            <strong>D</strong> toggles the Light/Dark theme; <strong>S</strong> activates the currently chosen Rectangle
+            <strong>T</strong> toggles the Light/Dark theme; <strong>S</strong> activates the currently chosen Rectangle
             or Free-form selection mode, and a quick second press switches between them while keeping Select active;
             <strong>L</strong> strokes an active marquee with the current color and line width; <strong>E</strong> opens
             movable Selection effects for a selection or pending image: Blur, current-color Shadow, Tonal controls
@@ -2321,7 +2347,7 @@
   <dialog id="downloadBackgroundDialog" aria-labelledby="downloadBackgroundTitle">
     <div class="dialog-content">
       <h2 id="downloadBackgroundTitle">Download background</h2>
-      <p>Keep the dark canvas background in the PNG, or re-render it on white?</p>
+      <p>Keep the dark canvas background in the PNG, or re-render it on white? White colors may drop out.</p>
       <form method="dialog">
         <button type="submit" value="cancel">Cancel</button>
         <button type="submit" value="dark">Keep dark background</button>
@@ -2536,10 +2562,13 @@
     instructionsDialog.addEventListener('click', (event) => {
       if (event.target === instructionsDialog) instructionsDialog.close();
     });
+    preferencesDialog.addEventListener('click', (event) => {
+      if (event.target === preferencesDialog) preferencesDialog.close();
+    });
     helpTerse.addEventListener('click', () => setHelpView('terse'));
     helpVerbose.addEventListener('click', () => setHelpView('verbose'));
     floatHelp.addEventListener('click', openFloatingHelp);
-    const defaultTextSize = window.matchMedia('(max-width: 700px)').matches ? 20 : 34;
+    const defaultTextSize = 28;
     const defaultPreferences = { source: 'swatch', swatch: '#3E6CA8', color: '#3E6CA8', selectionMode: 'rect', wash: false, moreControls: false, theme: 'light', lineWidth: 5, textSize: defaultTextSize };
     let isDrawing = false;
     let fillMode = false;
@@ -2618,13 +2647,16 @@
     function toggleTheme() {
       const theme = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
       document.documentElement.dataset.theme = theme;
+      const activeSwatch = document.querySelector('.color-swatch.active');
+      if (activeSwatch) color.value = swatchDrawColor(activeSwatch);
       updateWashAppearance();
       preferenceTheme.value = theme;
       savePreferences({ ...readPreferences(), theme });
     }
     function applyPreferences(preferences) {
       document.documentElement.dataset.theme = preferences.theme;
-      color.value = preferences.source === 'swatch' ? preferences.swatch : preferences.color;
+      const selectedSwatch = document.querySelector(`.color-swatch[data-color="${preferences.swatch}"]`);
+      color.value = preferences.source === 'swatch' && selectedSwatch ? swatchDrawColor(selectedSwatch) : preferences.color;
       selectionMode = preferences.selectionMode;
       updateSelectionToolButton();
       wash.checked = preferences.wash;
@@ -2720,7 +2752,11 @@
       }
       if (!textCursor.hidden) {
         textCursor.style.height = `${textSize.value}px`;
-        textCursor.style.color = color.value.toLowerCase() === '#ffffff' ? '#111827' : color.value;
+        const selectedColor = color.value.toLowerCase();
+        const darkMode = document.documentElement.dataset.theme === 'dark';
+        textCursor.style.color = darkMode && ['#080808', '#ffffff'].includes(selectedColor)
+          ? '#CCCCCC'
+          : selectedColor === '#ffffff' ? '#111827' : color.value;
         textCursor.style.opacity = wash.checked ? '.3' : '1';
       }
       if (point) {
@@ -2787,8 +2823,14 @@
       ctx.globalAlpha = 1;
       ctx.lineJoin = 'round';
     }
+    function showSelectionRequiredMessage() {
+      alert('These controls need an active selection to work.');
+    }
     function strokeSelectionMarquee() {
-      if (!selection) return false;
+      if (!selection) {
+        showSelectionRequiredMessage();
+        return false;
+      }
       beginSelectionMutation();
       selection.marqueeStroke = { color: color.value, width: Number(lineWidth.value), alpha: wash.checked ? .3 : 1 };
       renderSelection();
@@ -2825,7 +2867,7 @@
       if (!selection.blurControl) {
         const control = document.createElement('div');
         control.className = 'selection-blur-control';
-        control.innerHTML = '<label>Blur <input data-blur type="range" min="0" max="30" value="4" aria-label="Blur amount"><output data-blur-value>4</output></label><label>Shadow size <input data-shadow type="range" min="0" max="30" value="0" aria-label="Shadow width"><output data-shadow-value>0</output><select data-shadow-direction aria-label="Shadow direction"><option value="se">↘</option><option value="s">↓</option><option value="sw">↙</option><option value="e">→</option><option value="w">←</option><option value="ne">↗</option><option value="n">↑</option><option value="nw">↖</option></select></label>';
+        control.innerHTML = '<label>Blur <input data-blur type="range" min="0" max="30" value="4" aria-label="Blur amount"><output data-blur-value>4</output></label><label>Shadow size <input data-shadow type="range" min="0" max="30" value="0" aria-label="Shadow width"><output data-shadow-value>0</output><select data-shadow-direction aria-label="Shadow direction"><option value="se">⬊</option><option value="s">⬇</option><option value="sw">⬋</option><option value="e">➡</option><option value="w">⬅</option><option value="ne">⬈</option><option value="n">⬆</option><option value="nw">⬉</option></select></label>';
         control.insertAdjacentHTML('afterbegin', '<div class="selection-effects-title">Selection effects</div>');
         const blurRange = control.querySelector('[data-blur]');
         const blurOutput = control.querySelector('[data-blur-value]');
@@ -2836,7 +2878,7 @@
         blurRange.value = '0';
         blurOutput.value = '0';
         blurOutput.textContent = '0';
-        shadowDirection.innerHTML = '<option value="none">No offset</option><option value="n">&#8593;</option><option value="ne">&#8599;</option><option value="e">&#8594;</option><option value="se" selected>&#8600;</option><option value="s">&#8595;</option><option value="sw">&#8601;</option><option value="w">&#8592;</option><option value="nw">&#8598;</option>';
+        shadowDirection.innerHTML = '<option value="none">No offset</option><option value="n">&#11014;</option><option value="ne">&#11016;</option><option value="e">&#10145;</option><option value="se" selected>&#11018;</option><option value="s">&#11015;</option><option value="sw">&#11019;</option><option value="w">&#11013;</option><option value="nw">&#11017;</option>';
         shadowDirection.options[0].text = '.';
         shadowDirection.value = 'se';
         addShadowDirectionTooltips(shadowDirection);
@@ -2970,9 +3012,14 @@
       selection.blurControl.querySelector('[data-blur]').focus();
       return true;
     }
+    function swatchDrawColor(swatch) {
+      return document.documentElement.dataset.theme === 'dark' && swatch.dataset.darkColor
+        ? swatch.dataset.darkColor
+        : swatch.dataset.color;
+    }
     function updateWashAppearance() {
       document.querySelectorAll('.color-swatch').forEach((swatch) => {
-        const swatchColor = swatch.dataset.color;
+        const swatchColor = swatchDrawColor(swatch);
         swatch.style.backgroundColor = wash.checked ? (document.documentElement.dataset.theme === 'dark' ? lightWashSwatchColor(swatchColor) : washColor(swatchColor, .3)) : swatchColor;
         swatch.style.borderColor = wash.checked ? swatchColor : '';
         swatch.style.boxShadow = '';
@@ -3109,7 +3156,7 @@
       image.effects ||= { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0, shadow: null };
       const control = document.createElement('div');
       control.className = 'selection-blur-control';
-      control.innerHTML = '<div class="selection-effects-title">Effects</div><section class="selection-effects-section"><strong>Blur</strong><label>Blur <input data-effect="blur" type="range" min="0" max="30" value="0"><output>0</output></label></section><section class="selection-effects-section"><strong>Shadow</strong><label>Shadow size <input data-shadow="width" type="range" min="0" max="30" value="0"><output>0</output></label><label>Blur <input data-shadow="blur" type="range" min="0" max="30" value="0"><output>0</output></label><label>Direction <select data-shadow-direction><option value="none">No offset</option><option value="n">&#8593;</option><option value="ne">&#8599;</option><option value="e">&#8594;</option><option value="se" selected>&#8600;</option><option value="s">&#8595;</option><option value="sw">&#8601;</option><option value="w">&#8592;</option><option value="nw">&#8598;</option></select></label></section><section class="selection-effects-section"><strong>Color</strong><label>Brightness <input data-effect="brightness" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Contrast <input data-effect="contrast" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Grayscale <input data-effect="grayscale" type="range" min="0" max="100" value="0"><output>0</output></label><label>Sepia <input data-effect="sepia" type="range" min="0" max="100" value="0"><output>0</output></label><label>Invert <input data-effect="invert" type="range" min="0" max="100" value="0"><output>0</output></label><label>Hue <input data-effect="hue" type="range" min="0" max="360" value="0"><output>0</output></label></section><div class="selection-effects-actions"><button type="button" data-reset>Reset to defaults</button><button type="button" data-cancel>Cancel</button><button type="button" data-ok>OK</button></div>';
+      control.innerHTML = '<div class="selection-effects-title">Effects</div><section class="selection-effects-section"><strong>Blur</strong><label>Blur <input data-effect="blur" type="range" min="0" max="30" value="0"><output>0</output></label></section><section class="selection-effects-section"><strong>Shadow</strong><label>Shadow size <input data-shadow="width" type="range" min="0" max="30" value="0"><output>0</output></label><label>Blur <input data-shadow="blur" type="range" min="0" max="30" value="0"><output>0</output></label><label>Direction <select data-shadow-direction><option value="none">No offset</option><option value="n">&#11014;</option><option value="ne">&#11016;</option><option value="e">&#10145;</option><option value="se" selected>&#11018;</option><option value="s">&#11015;</option><option value="sw">&#11019;</option><option value="w">&#11013;</option><option value="nw">&#11017;</option></select></label></section><section class="selection-effects-section"><strong>Color</strong><label>Brightness <input data-effect="brightness" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Contrast <input data-effect="contrast" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Grayscale <input data-effect="grayscale" type="range" min="0" max="100" value="0"><output>0</output></label><label>Sepia <input data-effect="sepia" type="range" min="0" max="100" value="0"><output>0</output></label><label>Invert <input data-effect="invert" type="range" min="0" max="100" value="0"><output>0</output></label><label>Hue <input data-effect="hue" type="range" min="0" max="360" value="0"><output>0</output></label></section><div class="selection-effects-actions"><button type="button" data-reset>Reset to defaults</button><button type="button" data-cancel>Cancel</button><button type="button" data-ok>OK</button></div>';
       control.querySelector('[data-shadow-direction]').options[0].text = '.';
       control.querySelector('[data-shadow-direction]').title = 'Shadow offset direction';
       addShadowDirectionTooltips(control.querySelector('[data-shadow-direction]'));
@@ -3158,7 +3205,10 @@
     }
     function flipActiveImage() {
       const activeImage = pendingImage || selection;
-      if (!activeImage) return false;
+      if (!activeImage) {
+        showSelectionRequiredMessage();
+        return false;
+      }
       if (activeImage === selection) {
         convertLassoToRectangle();
         beginSelectionMutation();
@@ -3521,7 +3571,7 @@
     }
     function copySelection() {
       if (!selection) {
-        alert('Nothing selected to copy.');
+        showSelectionRequiredMessage();
         return;
       }
       const copy = document.createElement('canvas');
@@ -3544,7 +3594,7 @@
     }
     function cutSelection() {
       if (!selection) {
-        alert('Nothing selected to cut.');
+        showSelectionRequiredMessage();
         return;
       }
       copySelection();
@@ -3908,7 +3958,8 @@
     document.getElementById('strokeButton').addEventListener('click', strokeSelectionMarquee);
     document.getElementById('shapeEffectsButton').addEventListener('click', () => {
       if (pendingImage) showImageEffectsControl();
-      else showSelectionBlurControl();
+      else if (selection) showSelectionBlurControl();
+      else showSelectionRequiredMessage();
     });
     document.getElementById('boxButton').addEventListener('click', () => armShape(false));
     document.getElementById('circleButton').addEventListener('click', () => armShape(true));
@@ -3917,7 +3968,7 @@
     textSize.addEventListener('pointerdown', () => selectTool(true));
     textSize.addEventListener('focus', () => selectTool(true));
     document.querySelectorAll('.color-swatch').forEach((swatch) => swatch.addEventListener('click', () => {
-      color.value = swatch.dataset.color;
+      color.value = swatchDrawColor(swatch);
       document.querySelectorAll('.color-swatch').forEach((item) => item.classList.toggle('active', item === swatch));
       updateWashAppearance();
       refreshOpenEffectsShadowColor();
@@ -3925,7 +3976,7 @@
     }));
     color.addEventListener('input', () => {
       document.querySelectorAll('.color-swatch').forEach((swatch) => {
-        swatch.classList.toggle('active', swatch.dataset.color.toLowerCase() === color.value.toLowerCase());
+        swatch.classList.toggle('active', swatchDrawColor(swatch).toLowerCase() === color.value.toLowerCase());
       });
       updateWashAppearance();
       refreshOpenEffectsShadowColor();
@@ -4067,7 +4118,7 @@
       if (editor && event.target === editor && (event.code === 'ArrowLeft' || event.code === 'ArrowRight')) {
         event.preventDefault();
         const swatches = [...document.querySelectorAll('.color-swatch')];
-        const selected = swatches.findIndex((swatch) => swatch.dataset.color.toLowerCase() === color.value.toLowerCase());
+        const selected = swatches.findIndex((swatch) => swatchDrawColor(swatch).toLowerCase() === color.value.toLowerCase());
         const direction = event.code === 'ArrowRight' ? 1 : -1;
         swatches[(selected + direction + swatches.length) % swatches.length].click();
         return;
@@ -4083,7 +4134,7 @@
         showSelectionBlurControl();
         return;
       }
-      if (event.code === 'KeyL' && !editor && selection) {
+      if (event.code === 'KeyL' && !editor) {
         event.preventDefault();
         strokeSelectionMarquee();
         return;
@@ -4099,7 +4150,7 @@
         wash.dispatchEvent(new Event('change'));
         return;
       }
-      if (event.code === 'KeyD' && !editor && !typingInField) {
+      if (event.code === 'KeyT' && !editor && !typingInField) {
         event.preventDefault();
         toggleTheme();
         return;
@@ -4127,10 +4178,10 @@
         if (!selectionToolActive()) selectButton.click();
         return;
       }
-      if (event.code === 'KeyR' && !editor) {
+      if (event.code === 'KeyR' && (!editor || event.target === editor)) {
         event.preventDefault();
         document.querySelector('.floating-help')?.remove();
-        resetSketchPad();
+        resetSketchPad({ preserveText: Boolean(editor) });
         return;
       }
       if (event.code === 'KeyC' && !event.ctrlKey && !editor) {
@@ -4142,7 +4193,7 @@
       if ((navigationCode === 'ArrowLeft' || navigationCode === 'ArrowRight') && !editor) {
         event.preventDefault();
         const swatches = [...document.querySelectorAll('.color-swatch')];
-        const selected = swatches.findIndex((swatch) => swatch.dataset.color.toLowerCase() === color.value.toLowerCase());
+        const selected = swatches.findIndex((swatch) => swatchDrawColor(swatch).toLowerCase() === color.value.toLowerCase());
         const direction = navigationCode === 'ArrowRight' ? 1 : -1;
         const next = (selected + direction + swatches.length) % swatches.length;
         swatches[next].click();
@@ -4280,12 +4331,12 @@
       spectrumRotationTimer = null;
       spectrumRotationSession += 1;
     }
-    function resetSketchPad() {
+    function resetSketchPad({ preserveText = false } = {}) {
       isDrawing = false;
       spectrumRotation = 0;
       stopSpectrumRotation();
       strokePoints = [];
-      if (editor) {
+      if (editor && !preserveText) {
         editor.moveHandle?.remove();
         editor.remove();
         editor = null;
@@ -4305,8 +4356,8 @@
       wash.checked = false;
       lineWidth.value = '5';
       textSize.value = String(defaultPreferences.textSize);
-      drawTool.checked = true;
-      textTool.checked = false;
+      drawTool.checked = !preserveText;
+      textTool.checked = preserveText;
       document.querySelectorAll('.color-swatch').forEach((swatch) => {
         swatch.classList.toggle('active', swatch.dataset.color === color.value);
       });
@@ -4314,6 +4365,10 @@
       document.getElementById('textNumber').textContent = textSize.value;
       updateWashAppearance();
       updateBrushCursor();
+      if (preserveText && editor) {
+        editor.value = editor.defaultValue;
+        editor.focus();
+      }
     }
     document.getElementById('clear').addEventListener('click', () => clearDialog.showModal());
     clearDialog.addEventListener('close', () => {
@@ -4679,7 +4734,7 @@
       downloadCanvas('#ffffff');
     });
     downloadBackgroundDialog.addEventListener('close', () => {
-      if (downloadBackgroundDialog.returnValue === 'dark') downloadCanvas('#292929');
+      if (downloadBackgroundDialog.returnValue === 'dark') downloadCanvas('#121212');
       if (downloadBackgroundDialog.returnValue === 'white') downloadCanvas('#ffffff');
     });
     window.addEventListener('resize', resize);
