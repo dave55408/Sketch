@@ -2560,6 +2560,8 @@
     </div>
   </dialog>
   <script>
+    document.addEventListener('contextmenu', (event) => event.preventDefault());
+
     const canvas = document.getElementById('canvas');
     const area = document.getElementById('canvas-area');
     const canvasNavigator = document.getElementById('canvasNavigator');
