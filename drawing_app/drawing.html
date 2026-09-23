@@ -147,6 +147,29 @@
       box-shadow: inset 0 0 0 1px #2563d9;
     }
 
+    .zoom-home-icon {
+      width: 16.2px;
+      height: 16.2px;
+    }
+
+    #zoomHome {
+      display: grid;
+      width: 22px;
+      height: 22px;
+      margin-left: -4px;
+      padding: 2px;
+      place-items: center;
+      border: 0;
+      color: #6b7280;
+      background: transparent;
+      box-shadow: none;
+    }
+
+    #zoomHome:hover {
+      background: transparent;
+      opacity: .75;
+    }
+
     .shape-controls-group {
       display: flex;
       align-self: stretch;
@@ -382,6 +405,7 @@
     .action-buttons {
       display: flex;
       flex: none;
+      align-items: center;
       gap: 6px;
       white-space: nowrap;
     }
@@ -403,6 +427,18 @@
       margin: 0;
       accent-color: #60a5fa;
       cursor: pointer;
+    }
+
+    .zoom-percentage {
+      width: 50px;
+      height: 24px;
+      padding: 2px 5px;
+      border: 1px solid #94a3b8;
+      border-radius: 4px;
+      color: #1f2937;
+      background: #fff;
+      font: 700 12px Arial, sans-serif;
+      text-align: right;
     }
 
     .palette {
@@ -904,8 +940,26 @@
       font-weight: 700;
     }
 
-    .selection-effects-section>label {
-      margin-left: 8px;
+    .selection-blur-control .selection-effects-section>label {
+      display: grid;
+      grid-template-columns: 84px 96px 20px 48px;
+      align-items: center;
+      text-align: right;
+    }
+
+    .selection-effects-section.shadow-section {
+      position: relative;
+    }
+
+    .shadow-offset-control {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .shadow-offset-control select[data-shadow-direction] {
+      top: -1px;
     }
 
     .selection-effects-section.divided {
@@ -1286,16 +1340,77 @@
       overflow: hidden;
     }
 
+    #canvas-area.canvas-zoomed-out {
+      background: repeating-conic-gradient(#d1d5db 0 25%, #e5e7eb 0 50%) 50% / 16px 16px;
+      cursor: not-allowed;
+    }
+
     canvas {
       display: block;
       width: 100%;
       height: 100%;
+      background: #fff;
       cursor: none;
       touch-action: none;
+      transform-origin: center center;
     }
 
     canvas.fill-active {
       cursor: none !important;
+    }
+
+    .canvas-navigator {
+      position: absolute;
+      z-index: 12;
+      top: 12px;
+      right: 12px;
+      width: min(180px, 28%);
+      overflow: hidden;
+      border: 2px solid #3E6CA8;
+      background: #fff;
+      box-shadow: 0 2px 8px #11182755;
+      pointer-events: none;
+    }
+
+    .canvas-navigator[hidden] {
+      display: none;
+    }
+
+    .canvas-navigator-viewport {
+      position: absolute;
+      border: 2px solid #3E6CA8;
+      background: #3E6CA866;
+      box-shadow: inset 0 0 0 1px #ffffff80;
+      pointer-events: auto;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .canvas-navigator-viewport:active {
+      cursor: grabbing;
+    }
+
+    .canvas-navigator-close {
+      position: absolute;
+      z-index: 2;
+      top: 2px;
+      right: 2px;
+      display: grid;
+      width: 18px;
+      height: 18px;
+      padding: 0;
+      place-items: center;
+      border: 0;
+      color: #3E6CA8;
+      background: transparent;
+      font: 700 20px/1 Arial, sans-serif;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .canvas-navigator-close:hover {
+      background: transparent;
+      opacity: .7;
     }
 
     .brush-cursor {
@@ -1406,12 +1521,43 @@
       background: #181818;
     }
 
+    html[data-theme="dark"] .zoom-percentage {
+      border-color: #555555;
+      color: #cccccc;
+      background: #2a2a2a;
+    }
+
+    html[data-theme="dark"] #zoomHome {
+      color: #9ca3af;
+    }
+
     html[data-theme="dark"] .tool-divider {
       background: #2d2d2d;
     }
 
     html[data-theme="dark"] #canvas-area {
       background: #121212;
+    }
+
+    html[data-theme="dark"] canvas {
+      background: #121212;
+    }
+
+    html[data-theme="dark"] .canvas-navigator {
+      background: #121212;
+    }
+
+    html[data-theme="dark"] .canvas-navigator-close {
+      color: #60a5fa;
+      background: transparent;
+    }
+
+    html[data-theme="dark"] .canvas-navigator-close:hover {
+      background: transparent;
+    }
+
+    html[data-theme="dark"] #canvas-area.canvas-zoomed-out {
+      background: repeating-conic-gradient(#252525 0 25%, #1b1b1b 0 50%) 50% / 16px 16px;
     }
 
     html[data-theme="dark"] button {
@@ -1781,6 +1927,16 @@
       background-color: #F1EFED;
       background-image: none;
       border-bottom-color: #d1ccc5;
+    }
+
+    html[data-theme="light"] .floating-help,
+    html[data-theme="light"] .floating-help-footer,
+    html[data-theme="light"] .selection-blur-control {
+      background: #F1EFED;
+    }
+
+    html[data-theme="light"] #preferencesDialog {
+      background: #fff;
     }
 
     html[data-theme="light"] .more-controls-row {
@@ -2192,6 +2348,9 @@
             title="Create ellipse"><img src="assets/noun_drawcircle_5341105_@700.png" alt=""></button>
           <label class="shape-constrain-control"><input id="shapeConstrain" type="checkbox"> Constrain</label>
         </div>
+        <span class="tool-divider" aria-hidden="true"></span>
+        <input id="zoomPercentage" class="zoom-percentage" type="text" value="100%" inputmode="decimal" aria-label="Canvas zoom percentage" title="Canvas zoom percentage">
+        <button id="zoomHome" class="icon-action" type="button" aria-label="Reset canvas zoom" title="Reset zoom to 100%"><svg class="zoom-home-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M3 10.5 12 3l9 7.5v10a.5.5 0 0 1-.5.5h-5v-6h-7v6h-5a.5.5 0 0 1-.5-.5z"/></svg></button>
       </div>
     </div>
     <div id="canvas-area"><canvas id="canvas"></canvas>
@@ -2199,6 +2358,7 @@
       <div id="textCursor" class="text-cursor" hidden></div>
       <div id="fillCursor" class="fill-cursor" hidden><img id="fillCursorBucket" class="fill-cursor-bucket"
           src="assets/fill_red.png" alt=""></div>
+      <div id="canvasNavigator" class="canvas-navigator" hidden aria-hidden="true"><div id="canvasNavigatorViewport" class="canvas-navigator-viewport"></div><button id="canvasNavigatorClose" class="canvas-navigator-close" type="button" aria-label="Close navigator and reset zoom" title="Reset zoom to 100%">×</button></div>
     </div>
   </main>
   <dialog id="instructionsDialog" aria-labelledby="instructionsTitle">
@@ -2214,7 +2374,7 @@
         <p><strong>Select and import:</strong> Press S to select; press it twice quickly to switch Rectangle and
           Free-form. Drag selections to move them. An active selection crops an import.</p>
         <p><strong>Shortcuts:</strong> Shift constrains; Ctrl+Shift/Ctrl+Alt make a square/rectangle; add X for a
-          circle/ellipse. L outlines a selection; E opens effects; F toggles Fill; M mirrors; W toggles Wash; T toggles
+          circle/ellipse. Space floats a selection; L outlines a selection; E opens effects; F toggles Fill; M mirrors; W toggles Wash; T toggles
           theme; R restores defaults. Arrow keys change color (left/right) or size (up/down); 1/2/3/4 do the same
           outside text entry. Ctrl+C/X/V copies, cuts, and pastes; Ctrl+Z/Y undoes and redoes.</p>
         <p><strong>Preferences:</strong> Save color, Wash, selection mode, default theme, line width, and text size.</p>
@@ -2224,7 +2384,7 @@
       <div id="verboseHelp" hidden>
         <p><strong>Introduction:</strong> This web app is meant to duplicate the ease and speed of drawing in a room on
           a whiteboard. It mostly sticks to the essentials and has numerous shortcuts built in for speed. The workflow is 
-          optimzied for quickly switching between line drawing and text entry.</p>
+          optimized for quickly switching between line drawing and text entry.</p>
         <p><strong>Keyboard shortcuts:</strong></p>
         <ul>
           <li><strong>`</strong> toggles Draw and Text and returns Select to Draw; <strong>W</strong> toggles Wash;
@@ -2232,7 +2392,7 @@
             or Free-form selection mode, and a quick second press switches between them while keeping Select active;
             <strong>L</strong> strokes an active marquee with the current color and line width; <strong>E</strong> opens
             movable Selection effects for a selection or pending image: Blur, current-color Shadow, Tonal controls
-            (brightness and contrast), and Color controls (grayscale, sepia, invert, and hue rotation);
+            (brightness and contrast), and Color controls (grayscale, sepia, invert, saturation, and hue rotation);
             <strong>Escape</strong> always returns to Draw.</li>
           <li><strong>Shift</strong> constrains drawing to horizontal, vertical, and 45-degree lines, and snaps image
             rotation; <strong>Ctrl+Shift</strong> draws a square box; <strong>Ctrl+Alt</strong> draws a rectangle from
@@ -2402,6 +2562,9 @@
   <script>
     const canvas = document.getElementById('canvas');
     const area = document.getElementById('canvas-area');
+    const canvasNavigator = document.getElementById('canvasNavigator');
+    const canvasNavigatorViewport = document.getElementById('canvasNavigatorViewport');
+    const canvasNavigatorClose = document.getElementById('canvasNavigatorClose');
     const ctx = canvas.getContext('2d');
     const color = document.getElementById('color');
     const wash = document.getElementById('wash');
@@ -2441,6 +2604,8 @@
     const selectionMenu = document.getElementById('selectionMenu');
     const moreControls = document.getElementById('moreControls');
     const moreControlsRow = document.getElementById('moreControlsRow');
+    const zoomPercentage = document.getElementById('zoomPercentage');
+    const zoomHome = document.getElementById('zoomHome');
     const shapeConstrain = document.getElementById('shapeConstrain');
     moreControls.addEventListener('change', () => {
       moreControlsRow.hidden = !moreControls.checked;
@@ -2571,6 +2736,12 @@
     const defaultTextSize = 28;
     const defaultPreferences = { source: 'swatch', swatch: '#3E6CA8', color: '#3E6CA8', selectionMode: 'rect', wash: false, moreControls: false, theme: 'light', lineWidth: 5, textSize: defaultTextSize };
     let isDrawing = false;
+    let canvasZoom = 1;
+    let zoomKeyHeld = false;
+    let panKeyHeld = false;
+    let canvasPanOffset = { x: 0, y: 0 };
+    let canvasPan = null;
+    let navigatorDrag = null;
     let fillMode = false;
     let last;
     let editor;
@@ -2701,10 +2872,163 @@
         restore.onload = () => ctx.drawImage(restore, 0, 0, canvas.width, canvas.height);
         restore.src = image;
       }
+      updateCanvasNavigator();
     }
+    function updateCanvasNavigator() {
+      const visible = canvasZoom > 1.001 && canvas.width > 0 && canvas.height > 0;
+      canvasNavigator.hidden = !visible;
+      if (!visible) return;
+      canvasNavigator.style.aspectRatio = `${canvas.width} / ${canvas.height}`;
+      const areaBounds = area.getBoundingClientRect();
+      const canvasBounds = canvas.getBoundingClientRect();
+      const left = Math.max(areaBounds.left, canvasBounds.left);
+      const top = Math.max(areaBounds.top, canvasBounds.top);
+      const right = Math.min(areaBounds.right, canvasBounds.right);
+      const bottom = Math.min(areaBounds.bottom, canvasBounds.bottom);
+      if (right <= left || bottom <= top) {
+        canvasNavigatorViewport.style.width = '0';
+        canvasNavigatorViewport.style.height = '0';
+        return;
+      }
+      const x = (left - canvasBounds.left) / canvasBounds.width;
+      const y = (top - canvasBounds.top) / canvasBounds.height;
+      const width = (right - left) / canvasBounds.width;
+      const height = (bottom - top) / canvasBounds.height;
+      canvasNavigatorViewport.style.left = `${x * 100}%`;
+      canvasNavigatorViewport.style.top = `${y * 100}%`;
+      canvasNavigatorViewport.style.width = `${width * 100}%`;
+      canvasNavigatorViewport.style.height = `${height * 100}%`;
+    }
+    function setCanvasZoom(zoom, focalPoint = null) {
+      const nextZoom = Math.min(3, Math.max(.25, Math.round(zoom * 100) / 100));
+      if (nextZoom === canvasZoom) {
+        updateCanvasTransform();
+        area.classList.toggle('canvas-zoomed-out', canvasZoom < 1);
+        zoomPercentage.value = `${Math.round(canvasZoom * 100)}%`;
+        return;
+      }
+      let focalCanvasPoint = null;
+      if (focalPoint) {
+        const bounds = canvas.getBoundingClientRect();
+        focalCanvasPoint = {
+          x: (focalPoint.x - bounds.left) / bounds.width,
+          y: (focalPoint.y - bounds.top) / bounds.height,
+        };
+      }
+      canvasZoom = nextZoom;
+      updateCanvasTransform();
+      zoomPercentage.value = `${Math.round(canvasZoom * 100)}%`;
+      area.classList.toggle('canvas-zoomed-out', canvasZoom < 1);
+      if (focalCanvasPoint) {
+        const bounds = canvas.getBoundingClientRect();
+        canvasPanOffset.x += focalPoint.x - (bounds.left + focalCanvasPoint.x * bounds.width);
+        canvasPanOffset.y += focalPoint.y - (bounds.top + focalCanvasPoint.y * bounds.height);
+        updateCanvasTransform();
+      }
+    }
+    function resetCanvasZoom() {
+      canvasPanOffset = { x: 0, y: 0 };
+      setCanvasZoom(1);
+    }
+    function updateCanvasTransform() {
+      canvas.style.transform = `translate(${canvasPanOffset.x}px, ${canvasPanOffset.y}px) scale(${canvasZoom})`;
+      updateCanvasNavigator();
+    }
+    function constrainCanvasPan() {
+      if (canvasZoom <= 1) return;
+      const areaBounds = area.getBoundingClientRect();
+      const canvasBounds = canvas.getBoundingClientRect();
+      let x = 0;
+      let y = 0;
+      if (canvasBounds.left > areaBounds.left) x = areaBounds.left - canvasBounds.left;
+      else if (canvasBounds.right < areaBounds.right) x = areaBounds.right - canvasBounds.right;
+      if (canvasBounds.top > areaBounds.top) y = areaBounds.top - canvasBounds.top;
+      else if (canvasBounds.bottom < areaBounds.bottom) y = areaBounds.bottom - canvasBounds.bottom;
+      if (x || y) {
+        canvasPanOffset.x += x;
+        canvasPanOffset.y += y;
+        updateCanvasTransform();
+      }
+    }
+    canvasNavigatorViewport.addEventListener('pointerdown', (event) => {
+      if (canvasZoom <= 1) return;
+      event.preventDefault();
+      event.stopPropagation();
+      navigatorDrag = { clientX: event.clientX, clientY: event.clientY, x: canvasPanOffset.x, y: canvasPanOffset.y };
+      canvasNavigatorViewport.setPointerCapture(event.pointerId);
+    });
+    canvasNavigatorViewport.addEventListener('pointermove', (event) => {
+      if (!navigatorDrag) return;
+      const navigatorWidth = canvasNavigator.clientWidth;
+      const navigatorHeight = canvasNavigator.clientHeight;
+      if (!navigatorWidth || !navigatorHeight) return;
+      const canvasBounds = canvas.getBoundingClientRect();
+      canvasPanOffset.x = navigatorDrag.x - (event.clientX - navigatorDrag.clientX) * canvasBounds.width / navigatorWidth;
+      canvasPanOffset.y = navigatorDrag.y - (event.clientY - navigatorDrag.clientY) * canvasBounds.height / navigatorHeight;
+      updateCanvasTransform();
+      constrainCanvasPan();
+    });
+    const finishNavigatorDrag = () => { navigatorDrag = null; };
+    canvasNavigatorViewport.addEventListener('pointerup', finishNavigatorDrag);
+    canvasNavigatorViewport.addEventListener('pointercancel', finishNavigatorDrag);
+    canvasNavigatorViewport.addEventListener('lostpointercapture', finishNavigatorDrag);
+    function isTextEntryTarget(target) {
+      if (target?.tagName === 'TEXTAREA' || target?.tagName === 'SELECT') return true;
+      return target?.tagName === 'INPUT' && !['checkbox', 'radio', 'range', 'color', 'file'].includes(target.type);
+    }
+    function panModeActive() {
+      return zoomKeyHeld || panKeyHeld;
+    }
+    function isZoomShortcut(event) {
+      return event.code === 'KeyZ' || event.key?.toLowerCase() === 'z';
+    }
+    window.addEventListener('keydown', (event) => {
+      if (!isZoomShortcut(event) || editor || event.ctrlKey || event.altKey || event.metaKey || (isTextEntryTarget(event.target) && event.target !== zoomPercentage)) return;
+      if (event.target === zoomPercentage) event.preventDefault();
+      zoomKeyHeld = true;
+      updateBrushCursor();
+    }, true);
+    window.addEventListener('keyup', (event) => {
+      if (!isZoomShortcut(event)) return;
+      zoomKeyHeld = false;
+      canvasPan = null;
+      updateBrushCursor();
+    }, true);
+    window.addEventListener('wheel', (event) => {
+      if (!zoomKeyHeld || !event.composedPath().includes(area)) return;
+      event.preventDefault();
+      const zoomDelta = event.deltaY < 0 ? .1 : -.1;
+      let nextZoom = canvasZoom + zoomDelta;
+      const movingTowardDefault = (canvasZoom < 1 && zoomDelta > 0) || (canvasZoom > 1 && zoomDelta < 0);
+      if ((movingTowardDefault && Math.abs(nextZoom - 1) <= .101) || (canvasZoom - 1) * (nextZoom - 1) < 0) nextZoom = 1;
+      setCanvasZoom(nextZoom, { x: event.clientX, y: event.clientY });
+    }, { capture: true, passive: false });
+    zoomPercentage.addEventListener('change', () => {
+      const value = Number.parseFloat(zoomPercentage.value);
+      if (Number.isFinite(value)) setCanvasZoom(value / 100);
+      else zoomPercentage.value = `${Math.round(canvasZoom * 100)}%`;
+    });
+    zoomPercentage.addEventListener('click', () => zoomPercentage.select());
+    zoomPercentage.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        zoomPercentage.blur();
+      }
+    });
+    zoomHome.addEventListener('click', () => {
+      resetCanvasZoom();
+      zoomHome.blur();
+    });
+    canvasNavigatorClose.addEventListener('click', (event) => {
+      event.preventDefault();
+      resetCanvasZoom();
+    });
     function coordinates(event) {
       const bounds = canvas.getBoundingClientRect();
-      return { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+      return {
+        x: (event.clientX - bounds.left) * canvas.width / bounds.width,
+        y: (event.clientY - bounds.top) * canvas.height / bounds.height,
+      };
     }
     function recolorFillCursorBucket() {
       const selectedColor = color.value.toLowerCase();
@@ -2737,10 +3061,10 @@
     }
     function updateBrushCursor(point) {
       canvas.classList.toggle('fill-active', fillMode);
-      canvas.style.cursor = fillMode ? 'none' : pendingImage || selectionToolActive() ? 'crosshair' : 'none';
-      brushCursor.hidden = fillMode || textTool.checked || selectionToolActive() || !pointerOverCanvas || Boolean(pendingImage);
-      textCursor.hidden = fillMode || !textTool.checked || selectionToolActive() || !pointerOverCanvas || Boolean(pendingImage);
-      fillCursor.hidden = !fillMode || !pointerOverCanvas;
+      canvas.style.cursor = panModeActive() ? (canvasPan ? 'grabbing' : 'grab') : fillMode ? 'none' : pendingImage || selectionToolActive() ? 'crosshair' : 'none';
+      brushCursor.hidden = panModeActive() || fillMode || textTool.checked || selectionToolActive() || !pointerOverCanvas || Boolean(pendingImage);
+      textCursor.hidden = panModeActive() || fillMode || !textTool.checked || selectionToolActive() || !pointerOverCanvas || Boolean(pendingImage);
+      fillCursor.hidden = panModeActive() || !fillMode || !pointerOverCanvas;
       fillCursor.style.color = wash.checked ? washColor(color.value, .3) : color.value;
       recolorFillCursorBucket();
       if (!brushCursor.hidden) {
@@ -2760,12 +3084,16 @@
         textCursor.style.opacity = wash.checked ? '.3' : '1';
       }
       if (point) {
-        brushCursor.style.left = `${point.x}px`;
-        brushCursor.style.top = `${point.y}px`;
-        textCursor.style.left = `${point.x}px`;
-        textCursor.style.top = `${point.y}px`;
-        fillCursor.style.left = `${point.x}px`;
-        fillCursor.style.top = `${point.y}px`;
+        const canvasBounds = canvas.getBoundingClientRect();
+        const areaBounds = area.getBoundingClientRect();
+        const x = canvasBounds.left - areaBounds.left + point.x * canvasBounds.width / canvas.width;
+        const y = canvasBounds.top - areaBounds.top + point.y * canvasBounds.height / canvas.height;
+        brushCursor.style.left = `${x}px`;
+        brushCursor.style.top = `${y}px`;
+        textCursor.style.left = `${x}px`;
+        textCursor.style.top = `${y}px`;
+        fillCursor.style.left = `${x}px`;
+        fillCursor.style.top = `${y}px`;
       }
     }
     function washColor(hex, opacity) {
@@ -2838,11 +3166,11 @@
     }
     function applySelectionBlur(amount) {
       if (!selection?.blurSource) return;
-      const adjustments = selection.colorAdjustments || { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0 };
+      const adjustments = selection.colorAdjustments || { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0 };
       const contentContext = selection.content.getContext('2d');
       contentContext.clearRect(0, 0, selection.content.width, selection.content.height);
       contentContext.save();
-      contentContext.filter = `${amount ? `blur(${amount}px) ` : ''}brightness(${100 + adjustments.brightness}%) contrast(${100 + adjustments.contrast}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) hue-rotate(${adjustments.hue}deg)`;
+      contentContext.filter = `${amount ? `blur(${amount}px) ` : ''}brightness(${100 + adjustments.brightness}%) contrast(${100 + adjustments.contrast}%) grayscale(${adjustments.grayscale}%) sepia(${adjustments.sepia}%) invert(${adjustments.invert}%) saturate(${100 + (adjustments.saturation || 0)}%) hue-rotate(${adjustments.hue}deg)`;
       contentContext.drawImage(selection.blurSource, 0, 0);
       contentContext.restore();
       const preview = selection.container.querySelector('canvas');
@@ -2856,7 +3184,7 @@
     }
     function showSelectionBlurControl() {
       if (!selection) return false;
-      selection.colorAdjustments ||= { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0 };
+      selection.colorAdjustments ||= { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0 };
       if (!selection.blurSource) {
         beginSelectionMutation();
         selection.blurSource = document.createElement('canvas');
@@ -2890,15 +3218,19 @@
         blurSection.innerHTML = '<strong>Blur</strong>';
         blurSection.append(blurRange.closest('label'));
         const shadowSection = document.createElement('section');
-        shadowSection.className = 'selection-effects-section divided';
+        shadowSection.className = 'selection-effects-section divided shadow-section';
         shadowSection.innerHTML = '<strong>Shadow</strong>';
         shadowSection.append(shadowRange.closest('label'), shadowBlurRange.closest('label'));
+        const shadowOffsetControl = document.createElement('div');
+        shadowOffsetControl.className = 'shadow-offset-control';
+        shadowOffsetControl.append(shadowDirection);
+        shadowSection.append(shadowOffsetControl);
         const colorSection = document.createElement('section');
         colorSection.className = 'selection-effects-section divided';
         colorSection.innerHTML = '<strong>Tonal</strong><label>Brightness <input data-adjustment="brightness" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Contrast <input data-adjustment="contrast" type="range" min="-100" max="100" value="0"><output>0</output></label>';
         const colorEffectsSection = document.createElement('section');
         colorEffectsSection.className = 'selection-effects-section';
-        colorEffectsSection.innerHTML = '<strong>Color</strong><label>Grayscale <input data-adjustment="grayscale" type="range" min="0" max="100" value="0"><output>0</output></label><label>Sepia <input data-adjustment="sepia" type="range" min="0" max="100" value="0"><output>0</output></label><label>Invert <input data-adjustment="invert" type="range" min="0" max="100" value="0"><output>0</output></label><label>Hue <input data-adjustment="hue" type="range" min="0" max="360" value="0"><output>0</output></label>';
+        colorEffectsSection.innerHTML = '<strong>Color</strong><label>Grayscale <input data-adjustment="grayscale" type="range" min="0" max="100" value="0"><output>0</output></label><label>Hue <input data-adjustment="hue" type="range" min="0" max="360" value="0"><output>0</output></label><label>Invert <input data-adjustment="invert" type="range" min="0" max="100" value="0"><output>0</output></label><label>Saturation <input data-adjustment="saturation" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Sepia <input data-adjustment="sepia" type="range" min="0" max="100" value="0"><output>0</output></label>';
         const reset = document.createElement('button');
         reset.type = 'button';
         reset.className = 'selection-effects-reset';
@@ -2972,7 +3304,7 @@
           shadowOutput.value = shadowOutput.textContent = '0';
           shadowBlurOutput.value = shadowBlurOutput.textContent = '0';
           shadowDirection.value = 'se';
-          selection.colorAdjustments = { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0 };
+          selection.colorAdjustments = { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0 };
           adjustmentInputs.forEach((input) => {
             input.value = '0';
             input.nextElementSibling.value = input.nextElementSibling.textContent = '0';
@@ -2986,7 +3318,7 @@
             const contentContext = selection.content.getContext('2d');
             contentContext.clearRect(0, 0, selection.content.width, selection.content.height);
             contentContext.drawImage(selection.blurSource, 0, 0);
-            selection.colorAdjustments = { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0 };
+            selection.colorAdjustments = { brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0 };
             selection.shadow = null;
             const preview = selection.container.querySelector('canvas');
             preview.width = selection.content.width;
@@ -3118,8 +3450,8 @@
       };
     }
     function imageEffectsFilter(effects) {
-      const effect = effects || { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0, shadow: null };
-      const filter = `blur(${effect.blur}px) brightness(${100 + effect.brightness}%) contrast(${100 + effect.contrast}%) grayscale(${effect.grayscale}%) sepia(${effect.sepia}%) invert(${effect.invert}%) hue-rotate(${effect.hue}deg)`;
+      const effect = effects || { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0, shadow: null };
+      const filter = `blur(${effect.blur}px) brightness(${100 + effect.brightness}%) contrast(${100 + effect.contrast}%) grayscale(${effect.grayscale}%) sepia(${effect.sepia}%) invert(${effect.invert}%) saturate(${100 + (effect.saturation || 0)}%) hue-rotate(${effect.hue}deg)`;
       if (!effect.shadow || (!effect.shadow.width && !effect.shadow.blur)) return filter;
       const vectors = { none: [0, 0], n: [0, -1], ne: [1, -1], e: [1, 0], se: [1, 1], s: [0, 1], sw: [-1, 1], w: [-1, 0], nw: [-1, -1] };
       const [horizontal, vertical] = vectors[effect.shadow.direction] || vectors.se;
@@ -3153,13 +3485,22 @@
       if (!pendingImage) return;
       if (pendingImage.effectsControl) { pendingImage.effectsControl.hidden = false; setEffectsToolbarActive(true); updateImagePreview(); return; }
       const image = pendingImage;
-      image.effects ||= { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0, shadow: null };
+      image.effects ||= { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0, shadow: null };
       const control = document.createElement('div');
       control.className = 'selection-blur-control';
-      control.innerHTML = '<div class="selection-effects-title">Effects</div><section class="selection-effects-section"><strong>Blur</strong><label>Blur <input data-effect="blur" type="range" min="0" max="30" value="0"><output>0</output></label></section><section class="selection-effects-section"><strong>Shadow</strong><label>Shadow size <input data-shadow="width" type="range" min="0" max="30" value="0"><output>0</output></label><label>Blur <input data-shadow="blur" type="range" min="0" max="30" value="0"><output>0</output></label><label>Direction <select data-shadow-direction><option value="none">No offset</option><option value="n">&#11014;</option><option value="ne">&#11016;</option><option value="e">&#10145;</option><option value="se" selected>&#11018;</option><option value="s">&#11015;</option><option value="sw">&#11019;</option><option value="w">&#11013;</option><option value="nw">&#11017;</option></select></label></section><section class="selection-effects-section"><strong>Color</strong><label>Brightness <input data-effect="brightness" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Contrast <input data-effect="contrast" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Grayscale <input data-effect="grayscale" type="range" min="0" max="100" value="0"><output>0</output></label><label>Sepia <input data-effect="sepia" type="range" min="0" max="100" value="0"><output>0</output></label><label>Invert <input data-effect="invert" type="range" min="0" max="100" value="0"><output>0</output></label><label>Hue <input data-effect="hue" type="range" min="0" max="360" value="0"><output>0</output></label></section><div class="selection-effects-actions"><button type="button" data-reset>Reset to defaults</button><button type="button" data-cancel>Cancel</button><button type="button" data-ok>OK</button></div>';
+      control.innerHTML = '<div class="selection-effects-title">Effects</div><section class="selection-effects-section"><strong>Blur</strong><label>Blur <input data-effect="blur" type="range" min="0" max="30" value="0"><output>0</output></label></section><section class="selection-effects-section"><strong>Shadow</strong><label>Shadow size <input data-shadow="width" type="range" min="0" max="30" value="0"><output>0</output></label><label>Blur <input data-shadow="blur" type="range" min="0" max="30" value="0"><output>0</output></label><label>Direction <select data-shadow-direction><option value="none">No offset</option><option value="n">&#11014;</option><option value="ne">&#11016;</option><option value="e">&#10145;</option><option value="se" selected>&#11018;</option><option value="s">&#11015;</option><option value="sw">&#11019;</option><option value="w">&#11013;</option><option value="nw">&#11017;</option></select></label></section><section class="selection-effects-section"><strong>Color</strong><label>Brightness <input data-effect="brightness" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Contrast <input data-effect="contrast" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Grayscale <input data-effect="grayscale" type="range" min="0" max="100" value="0"><output>0</output></label><label>Hue <input data-effect="hue" type="range" min="0" max="360" value="0"><output>0</output></label><label>Invert <input data-effect="invert" type="range" min="0" max="100" value="0"><output>0</output></label><label>Saturation <input data-effect="saturation" type="range" min="-100" max="100" value="0"><output>0</output></label><label>Sepia <input data-effect="sepia" type="range" min="0" max="100" value="0"><output>0</output></label></section><div class="selection-effects-actions"><button type="button" data-reset>Reset to defaults</button><button type="button" data-cancel>Cancel</button><button type="button" data-ok>OK</button></div>';
       control.querySelector('[data-shadow-direction]').options[0].text = '.';
       control.querySelector('[data-shadow-direction]').title = 'Shadow offset direction';
       addShadowDirectionTooltips(control.querySelector('[data-shadow-direction]'));
+      const imageShadowSection = control.querySelectorAll('section')[1];
+      imageShadowSection.classList.add('shadow-section');
+      const imageShadowDirection = control.querySelector('[data-shadow-direction]');
+      const imageShadowDirectionLabel = imageShadowDirection.closest('label');
+      const imageShadowOffsetControl = document.createElement('div');
+      imageShadowOffsetControl.className = 'shadow-offset-control';
+      imageShadowOffsetControl.append(imageShadowDirection);
+      imageShadowDirectionLabel.remove();
+      imageShadowSection.append(imageShadowOffsetControl);
       const imageColorBasicSection = control.querySelectorAll('section')[2];
       imageColorBasicSection.querySelector('strong').textContent = 'Tonal';
       imageColorBasicSection.classList.add('divided');
@@ -3178,8 +3519,8 @@
         updateImagePreview();
       };
       control.querySelectorAll('input, select').forEach((input) => input.addEventListener(input.tagName === 'SELECT' ? 'change' : 'input', update));
-      control.querySelector('[data-reset]').addEventListener('click', () => { control.querySelectorAll('input[type="range"]').forEach((input) => { input.value = '0'; input.nextElementSibling.textContent = '0'; }); control.querySelector('[data-shadow-direction]').value = 'se'; image.effects = { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0, shadow: null }; updateImagePreview(); });
-      const close = (cancel) => { if (cancel) { image.effects = { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0, shadow: null }; updateImagePreview(); } control.remove(); image.effectsControl = null; setEffectsToolbarActive(false); };
+      control.querySelector('[data-reset]').addEventListener('click', () => { control.querySelectorAll('input[type="range"]').forEach((input) => { input.value = '0'; input.nextElementSibling.textContent = '0'; }); control.querySelector('[data-shadow-direction]').value = 'se'; image.effects = { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0, shadow: null }; updateImagePreview(); });
+      const close = (cancel) => { if (cancel) { image.effects = { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0, shadow: null }; updateImagePreview(); } control.remove(); image.effectsControl = null; setEffectsToolbarActive(false); };
       control.querySelector('[data-cancel]').addEventListener('click', () => close(true));
       control.querySelector('[data-ok]').addEventListener('click', () => close(false));
       control.addEventListener('pointerdown', (event) => event.stopPropagation());
@@ -3761,6 +4102,12 @@
     }
     canvas.addEventListener('pointerdown', (event) => {
       event.preventDefault();
+      if (panModeActive()) {
+        canvasPan = { clientX: event.clientX, clientY: event.clientY, x: canvasPanOffset.x, y: canvasPanOffset.y };
+        canvas.setPointerCapture(event.pointerId);
+        updateBrushCursor();
+        return;
+      }
       if (editor) {
         const point = coordinates(event);
         commitText();
@@ -3830,6 +4177,13 @@
       updateBrushCursor();
     });
     canvas.addEventListener('pointermove', (event) => {
+      if (canvasPan) {
+        canvasPanOffset.x = canvasPan.x + event.clientX - canvasPan.clientX;
+        canvasPanOffset.y = canvasPan.y + event.clientY - canvasPan.clientY;
+        updateCanvasTransform();
+        updateBrushCursor();
+        return;
+      }
       updateBrushCursor(coordinates(event));
       if (selectionDraft) {
         const point = coordinates(event);
@@ -3874,6 +4228,11 @@
       last = next;
     });
     function finishPointerAction() {
+      if (canvasPan) {
+        canvasPan = null;
+        updateBrushCursor();
+        return;
+      }
       imageDrag = null;
       imageResize = null;
       imageRotate = null;
@@ -3913,11 +4272,36 @@
     document.addEventListener('pointercancel', finishPointerAction);
     document.addEventListener('keydown', (event) => {
       if (event.code === 'KeyX' && !editor) circleKeyPressed = true;
+      if (event.code === 'KeyZ' && !editor && !event.ctrlKey && !event.altKey && !event.metaKey && (!isTextEntryTarget(event.target) || event.target === zoomPercentage)) {
+        if (event.target === zoomPercentage) event.preventDefault();
+        zoomKeyHeld = true;
+        updateBrushCursor();
+      }
+      if (event.code === 'Space' && !editor && !event.ctrlKey && !event.altKey && !event.metaKey && !isTextEntryTarget(event.target)) {
+        event.preventDefault();
+        if (selection) {
+          beginSelectionMutation();
+          detachSelection();
+          return;
+        }
+        panKeyHeld = true;
+        updateBrushCursor();
+      }
     });
     document.addEventListener('keyup', (event) => {
       if (event.code === 'KeyX') circleKeyPressed = false;
+      if (event.code === 'KeyZ') {
+        zoomKeyHeld = false;
+        canvasPan = null;
+        updateBrushCursor();
+      }
+      if (event.code === 'Space') {
+        panKeyHeld = false;
+        canvasPan = null;
+        updateBrushCursor();
+      }
     });
-    window.addEventListener('blur', () => { circleKeyPressed = false; });
+    window.addEventListener('blur', () => { circleKeyPressed = false; zoomKeyHeld = false; panKeyHeld = false; canvasPan = null; updateBrushCursor(); });
     lineWidth.addEventListener('input', () => {
       document.getElementById('widthNumber').textContent = lineWidth.value;
       updateBrushCursor();
@@ -4009,6 +4393,7 @@
       if (!activating) drawTool.checked = true;
     });
     document.addEventListener('keydown', (event) => {
+      if (event.target === zoomPercentage) return;
       if (event.code === 'Enter' && !editor && (pendingImage || selection)) {
         event.preventDefault();
         if (pendingImage) placePendingImage();
@@ -4333,6 +4718,7 @@
     }
     function resetSketchPad({ preserveText = false } = {}) {
       isDrawing = false;
+      resetCanvasZoom();
       spectrumRotation = 0;
       stopSpectrumRotation();
       strokePoints = [];
@@ -4547,7 +4933,7 @@
           flipY: false,
           nextFlipAxis: 'x',
           crop: target,
-          effects: { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, hue: 0, shadow: null },
+          effects: { blur: 0, brightness: 0, contrast: 0, grayscale: 0, sepia: 0, invert: 0, saturation: 0, hue: 0, shadow: null },
           effectsControl: null,
         };
         updateBrushCursor();
