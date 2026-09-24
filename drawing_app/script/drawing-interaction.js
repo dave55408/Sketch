@@ -61,7 +61,10 @@
     }
     document.querySelector('.tools').addEventListener('click', (event) => {
       const button = event.target.closest('button');
-      if (button && !button.matches('#boxButton, #circleButton')) disarmToolbarShape();
+      if (button && button !== colorPickerButton) {
+        setColorPickerMode(false);
+        if (!button.matches('#boxButton, #circleButton')) disarmToolbarShape();
+      }
     });
     document.getElementById('undoButton').addEventListener('click', undoLast);
     document.getElementById('redoButton').addEventListener('click', redoLast);
@@ -77,10 +80,13 @@
     });
     document.getElementById('boxButton').addEventListener('click', () => armShape(false));
     document.getElementById('circleButton').addEventListener('click', () => armShape(true));
-    lineWidth.addEventListener('pointerdown', () => selectTool(false));
-    lineWidth.addEventListener('focus', () => selectTool(false));
-    textSize.addEventListener('pointerdown', () => selectTool(true));
-    textSize.addEventListener('focus', () => selectTool(true));
+    lineWidth.addEventListener('pointerdown', () => { setColorPickerMode(false); selectTool(false); });
+    lineWidth.addEventListener('focus', () => { setColorPickerMode(false); selectTool(false); });
+    textSize.addEventListener('pointerdown', () => { setColorPickerMode(false); selectTool(true); });
+    textSize.addEventListener('focus', () => { setColorPickerMode(false); selectTool(true); });
+    shapeConstrain.addEventListener('change', () => setColorPickerMode(false));
+    moreControls.addEventListener('change', () => setColorPickerMode(false));
+    zoomPercentage.addEventListener('focus', () => setColorPickerMode(false));
     colorPickerButton.addEventListener('click', () => setColorPickerMode(!colorPickerMode));
     document.querySelectorAll('.color-swatch').forEach((swatch) => swatch.addEventListener('click', () => {
       color.value = swatchDrawColor(swatch);
@@ -90,6 +96,7 @@
       updateBrushCursor();
     }));
     color.addEventListener('input', () => {
+      if (!colorPickerSampleInProgress) setColorPickerMode(false);
       document.querySelectorAll('.color-swatch').forEach((swatch) => {
         swatch.classList.toggle('active', swatchDrawColor(swatch).toLowerCase() === color.value.toLowerCase());
       });
@@ -98,12 +105,14 @@
       updateBrushCursor();
     });
     wash.addEventListener('change', () => {
+      if (!colorPickerSampleInProgress) setColorPickerMode(false);
       updateWashAppearance();
       refreshOpenEffectsShadowColor();
       updateBrushCursor();
     });
     [drawTool, textTool].forEach((tool) => tool.addEventListener('change', () => {
       if (!tool.checked) return;
+      setColorPickerMode(false);
       setFillMode(false);
       selectButton.classList.remove('active');
       selectButton.setAttribute('aria-pressed', 'false');

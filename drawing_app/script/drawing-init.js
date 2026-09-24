@@ -192,6 +192,8 @@
     let navigatorPreviewPending = false;
     let fillMode = false;
     let colorPickerMode = false;
+    let colorPickerSampleInProgress = false;
+    let colorPickerPreviewFadeTimer;
     let last;
     let editor;
     let textDrag;

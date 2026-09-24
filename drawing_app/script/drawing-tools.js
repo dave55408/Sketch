@@ -364,13 +364,26 @@
       fillButton.setAttribute('aria-pressed', String(active));
       updateBrushCursor();
     }
-    function setColorPickerMode(active) {
+    function setColorPickerMode(active, fadePreview = false) {
       colorPickerMode = active;
       colorPickerButton.classList.toggle('shape-active', active);
       colorPickerButton.setAttribute('aria-pressed', String(active));
       if (active) setFillMode(false);
-      if (!active) colorPickerPreview.hidden = true;
+      if (!active) hideColorPickerPreview(fadePreview);
       updateBrushCursor();
+    }
+    function hideColorPickerPreview(fade = false) {
+      clearTimeout(colorPickerPreviewFadeTimer);
+      if (!fade || colorPickerPreview.hidden) {
+        colorPickerPreview.classList.remove('is-fading');
+        colorPickerPreview.hidden = true;
+        return;
+      }
+      colorPickerPreview.classList.add('is-fading');
+      colorPickerPreviewFadeTimer = setTimeout(() => {
+        colorPickerPreview.hidden = true;
+        colorPickerPreview.classList.remove('is-fading');
+      }, 1400);
     }
     function canvasColorAt(point) {
       const x = Math.max(0, Math.min(canvas.width - 1, Math.floor(point.x)));
@@ -380,6 +393,8 @@
       return `#${[red, green, blue].map((channel) => channel.toString(16).padStart(2, '0')).join('')}`;
     }
     function updateColorPickerPreview(point) {
+      clearTimeout(colorPickerPreviewFadeTimer);
+      colorPickerPreview.classList.remove('is-fading');
       const hex = canvasColorAt(point);
       colorPickerPreviewSwatch.style.background = hex;
       colorPickerPreviewValue.value = hex.toUpperCase();
@@ -396,9 +411,11 @@
     function pickCanvasColor(point) {
       color.value = canvasColorAt(point);
       wash.checked = false;
+      colorPickerSampleInProgress = true;
       color.dispatchEvent(new Event('input'));
       wash.dispatchEvent(new Event('change'));
-      setColorPickerMode(false);
+      colorPickerSampleInProgress = false;
+      setColorPickerMode(false, true);
     }
     function fillContainedArea(point) {
       const x = Math.max(0, Math.min(canvas.width - 1, Math.floor(point.x)));
