@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sky Strike</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #f8fbff; background: #102238; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 50% 0%, #254d6f, #0d1725 70%); }
+    main { width: min(98vw, 1500px); padding: 18px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
+    h1 { margin: 0; letter-spacing: .05em; font-size: clamp(1.25rem, 3vw, 2rem); }
+    #status { margin: 0; color: #d2e6fa; font-weight: 700; }
+    .game-area { display: flex; align-items: center; gap: 18px; }
+    .game-wrap { flex: 1 1 0; min-width: 0; border: 4px solid #71b9dc; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px #0009; background: #82cef2; }
+    canvas { display: block; width: 100%; height: auto; aspect-ratio: 96 / 65; touch-action: none; }
+    .controls { display: flex; flex: 0 0 300px; flex-direction: column; align-items: center; width: min(100%, 300px); gap: 10px; margin: 0; padding-bottom: 75px; }
+    .control-row { display: flex; width: 100%; align-items: center; justify-content: center; gap: 16px; }
+    .flight-controls { justify-self: center; }
+    .flight-controls { display: grid; grid-template-columns: repeat(3, minmax(52px, 1fr)); grid-template-areas: ". up ." "left . right" ". down ."; gap: 6px; }
+    #slower { grid-area: left; }
+    #up { grid-area: up; }
+    #down { grid-area: down; }
+    #faster { grid-area: right; }
+    .help-panel { width: 100%; margin: 0; padding: .65rem; border: 1px solid #5d99b7; border-radius: 9px; background: #17364dcc; color: #d9f1ff; font-size: .8rem; line-height: 1.45; text-align: center; }
+    .controls .hint { width: 100%; margin: 24px 0 0; }
+    .controls button { padding: .55rem .45rem; font-size: .82rem; }
+    button { border: 1px solid #89bed8; border-radius: 9px; padding: .65rem .95rem; background: #1e405c; color: #fff; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap; box-shadow: inset 0 1px #ffffff33; }
+    button:hover, button:focus-visible { background: #2f698e; outline: 3px solid #d6f4ff; outline-offset: 2px; }
+    .hint { margin: 12px 0 0; text-align: center; color: #bad0df; font-size: .94rem; line-height: 1.6; }
+    kbd { padding: 1px 5px; border: 1px solid #90aaba; border-radius: 4px; background: #172d42; color: white; font-family: inherit; }
+    @media (max-width: 767px) {
+      .game-area { display: block; }
+      .controls { margin: 16px auto 0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header><p id="status" aria-live="polite"></p></header>
+    <div class="game-area">
+      <div class="game-wrap"><canvas id="game" width="1920" height="1300" aria-label="Plane bombing game"></canvas></div>
+      <div class="controls">
+        <div class="control-row">
+          <div class="flight-controls" aria-label="Flight controls">
+            <button id="slower" aria-label="Fly left">◀</button>
+            <button id="up" aria-label="Fly up">▲</button>
+            <button id="down" aria-label="Fly down">▼</button><button id="faster" aria-label="Fly right">▶</button>
+          </div>
+          <button id="bomb">● Drop</button>
+        </div>
+        <div class="control-row">
+          <button id="reset">Press N to start</button>
+          <button id="help" aria-expanded="false" aria-controls="help-panel">Help</button>
+        </div>
+        <p id="help-panel" class="help-panel" hidden>Reach 100 points: bomb tanks for 10 points, barns for 20, and blimps or fighters for 5. Collect blue repair pickups, avoid enemy fire, and do not collide with blimps or fighters.</p>
+        <p class="hint">Fly with the <kbd>Arrow keys</kbd> or <kbd>W</kbd>/<kbd>S</kbd>; press <kbd>Space</kbd> to release a bomb, <kbd>P</kbd> to pause, and <kbd>N</kbd> for a new mission. Avoid the blimp and tank fire.</p>
+      </div>
+    </div>
+  </main>
+  <script>
+    const canvas = document.querySelector('#game');
+    const ctx = canvas.getContext('2d');
+    const status = document.querySelector('#status');
+    const bomberSprite = new Image();
+    bomberSprite.src = 'assets/bomber-sprite-v2.png';
+    const bombSprite = new Image();
+    bombSprite.src = 'assets/bomb-sprite.png';
+    const blimpSpriteSheet = new Image();
+    blimpSpriteSheet.src = 'assets/blimp-turn-sprites.png';
+    const pineSprite = new Image();
+    pineSprite.src = 'assets/pine-tree-sprite.png';
+    const fighterSprite = new Image();
+    fighterSprite.src = 'assets/fighter-raider.png';
+    // Keep game coordinates stable while the double-resolution canvas renders them sharply.
+    const W = 960, H = 650, ground = 543, DISPLAY_SCALE = 2, GROUND_SCROLL_SPEED = 2.1;
+    const HILL_HEIGHT = (H - ground) * .55;
+    let keys = {}, bombs = [], explosions = [], enemyShots = [], tankShots = [], powerUps = [], enemyFighters = [], won = false, dead = false, paused = false, waitingToStart = true, scrollOffset = 0;
+    const MISSION_GOAL = 100;
+    const BARN_SCALE = .9;
+    let plane, tanks, blimp, barn, lives, score, redTankTimer, powerUpTimer, fighterTimer;
+
+    function createTank(x = W + 90 + Math.random() * 220, red = false) {
+      return { x, y: ground - 23, speed: red ? 1.2 : .6, red, angle: 0, slopeAngle: 0, fireCooldown: red ? 90 : 180, alive: true };
+    }
+
+    function newMission() {
+      plane = { x: 220, y: 120, vy: 0, speed: 2.1, cooldown: 0, invulnerable: 0 };
+      blimp = { x: 690, y: 115, vx: 1.25, vy: .78, fireCooldown: 95, alive: true, respawnTimer: 0, facing: 1, frame: 0, turning: false, turnProgress: 0, turnTick: 0 };
+      barn = { x: W + 450, fireCooldown: 85, angle: 0, alive: true, respawnTimer: 0 };
+      lives = 3;
+      score = 0;
+      tanks = [createTank(265), createTank(505), createTank(755)];
+      redTankTimer = 240 + Math.floor(Math.random() * 180);
+      powerUpTimer = 420 + Math.floor(Math.random() * 240);
+      fighterTimer = 540 + Math.floor(Math.random() * 300);
+      bombs = []; explosions = []; enemyShots = []; tankShots = []; powerUps = []; enemyFighters = []; won = false; dead = false; paused = false; waitingToStart = false; scrollOffset = 0;
+      status.textContent = `Score: 0 · Hull: 3 · Goal: ${MISSION_GOAL}`;
+    }
+    function dropBomb() {
+      if (waitingToStart || won || paused || !plane || plane.cooldown > 0 || bombs.length >= 2) return;
+      // A released bomb keeps the aircraft's forward velocity from the moment it leaves the bay.
+      bombs.push({ x: plane.x + 18, y: plane.y + 28, vx: plane.speed, vy: 1.26, angle: -Math.PI / 6 });
+      plane.cooldown = 18;
+    }
+    function drawCloud(x, y, s) {
+      const puffs = [[0,4,24],[25,-10,33],[55,1,25],[32,11,35]];
+      ctx.save();
+      // Cool soft shadow beneath the cloud volume.
+      ctx.fillStyle = '#578ba4'; ctx.globalAlpha = .18;
+      ctx.beginPath(); ctx.ellipse(x + 34*s, y + 18*s, 51*s, 13*s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = .82;
+      ctx.save(); ctx.beginPath(); ctx.rect(x - 28*s, y - 48*s, 120*s, 74*s); ctx.clip();
+      puffs.forEach(([dx,dy,r]) => {
+        const px = x + dx*s, py = y + dy*s, radius = r*s;
+        const puff = ctx.createRadialGradient(px - radius*.28, py - radius*.36, radius*.08, px, py, radius);
+        puff.addColorStop(0, '#ffffff'); puff.addColorStop(.58, '#f7fbfd'); puff.addColorStop(1, '#b9d2dd');
+        ctx.fillStyle = puff; ctx.beginPath(); ctx.arc(px, py, radius, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
+      const base = ctx.createLinearGradient(x, y, x, y + 26*s);
+      base.addColorStop(0, '#f7fbfd'); base.addColorStop(1, '#c2d9e2');
+      ctx.fillStyle = base; ctx.fillRect(x - 2*s, y + 10*s, 70*s, 16*s);
+      ctx.restore();
+    }
+    function terrainY(x) {
+      // Layered waves make larger, less predictable rolling terrain.
+      const worldX = x + scrollOffset;
+      const rolling = Math.max(0, Math.min(1, .7 * Math.sin(worldX * .009) + .3 * Math.sin(worldX * .021 + 1.4)));
+      return ground - HILL_HEIGHT * rolling;
+    }
+    function drawPine(x, baseY, scale) {
+      scale *= .7;
+      if (pineSprite.complete && pineSprite.naturalWidth) {
+        const height = 124 * scale, width = 92 * scale;
+        ctx.save(); ctx.filter = 'brightness(.62) saturate(.85) hue-rotate(8deg)';
+        ctx.drawImage(pineSprite, x - width / 2, baseY - height, width, height);
+        ctx.restore();
+        return;
+      }
+      ctx.save(); ctx.translate(x, baseY); ctx.scale(scale, scale);
+      ctx.fillStyle = '#5f4129'; ctx.fillRect(-4, -30, 8, 30);
+      ctx.fillStyle = '#285c3c';
+      [[-62, 27], [-43, 38], [-22, 48]].forEach(([top, width]) => {
+        ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(-width, 2); ctx.lineTo(width, 2); ctx.closePath(); ctx.fill();
+      });
+      ctx.fillStyle = '#3b7b4d'; ctx.beginPath(); ctx.moveTo(0,-62); ctx.lineTo(-18,-19); ctx.lineTo(0,-27); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    function barnBaseY() {
+      // Use the lowest point under the whole barn footprint, so neither edge floats above a slope.
+      let baseY = terrainY(barn.x);
+      for (let offset = -44; offset <= 44; offset += 11) baseY = Math.max(baseY, terrainY(barn.x + offset));
+      return baseY;
+    }
+    function drawBarn() {
+      if (!barn.alive) return;
+      ctx.save(); ctx.translate(barn.x, barnBaseY()); ctx.scale(BARN_SCALE, BARN_SCALE);
+      ctx.fillStyle = '#9a3f35'; ctx.fillRect(-44, -64, 88, 64);
+      ctx.fillStyle = '#6c2929'; ctx.beginPath(); ctx.moveTo(-55,-64); ctx.lineTo(0,-112); ctx.lineTo(55,-64); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e4b268'; ctx.fillRect(-12,-43,24,43);
+      ctx.fillStyle = '#3d5360'; ctx.fillRect(-34,-52,16,16); ctx.fillRect(18,-52,16,16);
+      ctx.save(); ctx.translate(0,-82); ctx.rotate(barn.angle); ctx.fillStyle = '#26313d'; ctx.fillRect(0,-3,32,6); ctx.restore();
+      ctx.restore();
+    }
+    function drawTank(t) {
+      if (!t.alive) return;
+      ctx.save(); ctx.translate(t.x, t.y + 8.3); ctx.scale(.64, .64); ctx.rotate(t.slopeAngle);
+      ctx.fillStyle = t.red ? '#a83c38' : '#1d5b39'; ctx.fillRect(-28, -12, 56, 15);
+      ctx.fillStyle = t.red ? '#682829' : '#143d28'; ctx.fillRect(-32, 4, 64, 10);
+      ctx.fillStyle = t.red ? '#e26550' : '#3f9861'; ctx.fillRect(-13, -25, 26, 16);
+      ctx.save(); ctx.translate(0, -17); ctx.rotate(t.angle - t.slopeAngle); ctx.fillStyle = t.red ? '#5b2324' : '#163f29'; ctx.fillRect(0, -3, 35, 6); ctx.restore();
+      ctx.fillStyle = '#081b14'; [-19, 19].forEach(x => { ctx.beginPath(); ctx.arc(x, 14, 9, 0, Math.PI*2); ctx.fill(); });
+      ctx.restore();
+    }
+    function drawPlane() {
+      ctx.save(); ctx.translate(plane.x, plane.y);
+      if (plane.invulnerable && Math.floor(plane.invulnerable / 5) % 2 === 0) ctx.globalAlpha = .35;
+      if (bomberSprite.complete && bomberSprite.naturalWidth) {
+        ctx.drawImage(bomberSprite, -62.5, -21, 125, 42);
+      } else {
+        ctx.fillStyle = '#d8e6ee'; ctx.beginPath(); ctx.moveTo(-55, 0); ctx.lineTo(50, -11); ctx.lineTo(62, 0); ctx.lineTo(50, 11); ctx.closePath(); ctx.fill();
+      }
+      // Transparent hull number moved forward along the fuselage.
+      ctx.beginPath(); ctx.arc(-20, -24, 8, 0, Math.PI * 2);
+      ctx.strokeStyle = lives > 0 ? '#d9f6e5' : '#ffc6cc'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(lives), -20, -24);
+      ctx.restore();
+    }
+    function drawPowerUp(powerUp) {
+      const pulse = .82 + Math.sin(powerUp.phase) * .18;
+      ctx.save(); ctx.translate(powerUp.x, powerUp.y);
+      ctx.shadowColor = '#68d9ff'; ctx.shadowBlur = 15 * pulse;
+      ctx.fillStyle = '#208fda'; ctx.beginPath(); ctx.arc(0, 0, 11 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#d8f8ff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(5, 0); ctx.moveTo(0, -5); ctx.lineTo(0, 5); ctx.stroke();
+      ctx.restore();
+    }
+    function drawEnemyFighter(fighter) {
+      ctx.save(); ctx.translate(fighter.x, fighter.y);
+      if (fighterSprite.complete && fighterSprite.naturalWidth) {
+        ctx.drawImage(fighterSprite, 0, fighterSprite.naturalHeight * .12, fighterSprite.naturalWidth, fighterSprite.naturalHeight * .62, -32, -12, 64, 25);
+      } else {
+        ctx.fillStyle = '#65706a'; ctx.beginPath(); ctx.moveTo(-70, 0); ctx.lineTo(65, -14); ctx.lineTo(76, 0); ctx.lineTo(65, 14); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+    function drawBlimp() {
+      if (!blimp.alive) return;
+      ctx.save(); ctx.translate(blimp.x, blimp.y);
+      if (blimpSpriteSheet.complete && blimpSpriteSheet.naturalWidth) {
+        // Five hand-aligned source windows: left, three turning poses, and right.
+        const frames = [[0,.245],[.24,.215],[.43,.15],[.57,.20],[.76,.24]];
+        const [start, width] = frames[blimp.frame];
+        const sourceY = blimpSpriteSheet.naturalHeight * .22;
+        const sourceH = blimpSpriteSheet.naturalHeight * .57;
+        ctx.drawImage(blimpSpriteSheet, blimpSpriteSheet.naturalWidth * start, sourceY, blimpSpriteSheet.naturalWidth * width, sourceH, -70, -35, 140, 70);
+      } else {
+        ctx.fillStyle = '#e9f4f8'; ctx.beginPath(); ctx.ellipse(0, 0, 54, 22, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+    function loseHullPoint() {
+      if (plane.invulnerable || dead) return;
+      lives--; plane.invulnerable = 75;
+      explosions.push({ x: plane.x, y: plane.y, age: 0 });
+      if (lives <= 0) { dead = true; status.textContent = 'Hull depleted — mission failed.'; }
+      return true;
+    }
+    function hitPlane() {
+      if (!loseHullPoint()) return;
+      dead = true; status.textContent = 'Hull hit — mission failed.';
+    }
+    function crashPlaneIntoBlimp() {
+      if (dead) return;
+      lives = 0; dead = true;
+      explosions.push({ x: plane.x, y: plane.y, age: 0 });
+      status.textContent = 'Collision with the blimp — mission failed.';
+    }
+    function crashPlaneIntoFighter() {
+      if (dead) return;
+      lives = 0; dead = true;
+      explosions.push({ x: plane.x, y: plane.y, age: 0 });
+      status.textContent = 'Collision with an enemy fighter — mission failed.';
+    }
+    function hitsBomber(x, y) {
+      // A capsule follows the fuselage from the tail to the nose, rather than using a
+      // single circle centered on the cockpit. This lets shots damage the tail too.
+      const closestX = Math.max(plane.x - 60, Math.min(x, plane.x + 55));
+      return Math.hypot(x - closestX, y - plane.y) < 22;
+    }
+    function update() {
+      const ay = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0);
+      const ax = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);
+      if (waitingToStart || won || dead || paused) return;
+      // The bomber can be positioned freely while the side-scrolling world cruises onward.
+      plane.x = Math.max(80, Math.min(W - 80, plane.x + ax * 3.2));
+      plane.vy = plane.vy * .82 + ay * .75;
+      scrollOffset += GROUND_SCROLL_SPEED;
+      plane.y = Math.max(45, Math.min(ground - 85, plane.y + plane.vy));
+      tanks.forEach(tank => {
+        if (!tank.alive) return;
+        if (tank.red) {
+          // The raider drives toward the bomber, but stops short instead of passing beneath it.
+          const distanceToBomber = plane.x - tank.x;
+          if (Math.abs(distanceToBomber) > 70) tank.x += Math.sign(distanceToBomber) * (GROUND_SCROLL_SPEED + tank.speed) * .7;
+        } else {
+          // Standard tanks travel with the scrolling terrain, plus their own ground speed.
+          tank.x -= GROUND_SCROLL_SPEED + tank.speed;
+        }
+        if (tank.x < -55) tank.alive = false;
+        tank.y = terrainY(tank.x) - 23;
+        tank.slopeAngle = Math.atan2(terrainY(tank.x + 10) - terrainY(tank.x - 10), 20);
+        const turretX = tank.x, turretY = tank.y - 9;
+        tank.angle = Math.atan2(plane.y - turretY, plane.x - turretX);
+        if (--tank.fireCooldown <= 0) {
+          const shotSpeed = 2.65;
+          tankShots.push({ source: 'tank', x: turretX + Math.cos(tank.angle) * 24, y: turretY + Math.sin(tank.angle) * 24, vx: Math.cos(tank.angle) * shotSpeed, vy: Math.sin(tank.angle) * shotSpeed });
+          tank.fireCooldown = tank.red ? 90 : 180;
+        }
+      });
+      tanks = tanks.filter(tank => tank.alive);
+      while (tanks.filter(tank => !tank.red).length < 3) tanks.push(createTank());
+      if (!tanks.some(tank => tank.red) && --redTankTimer <= 0) {
+        tanks.push(createTank(W + 90 + Math.random() * 220, true));
+        redTankTimer = 480 + Math.floor(Math.random() * 240);
+      }
+      if (!powerUps.length && --powerUpTimer <= 0) {
+        powerUps.push({ x: W + 30, y: 70 + Math.random() * (ground - 190), phase: Math.random() * Math.PI * 2 });
+        powerUpTimer = 620 + Math.floor(Math.random() * 360);
+      }
+      powerUps.forEach(powerUp => { powerUp.x -= GROUND_SCROLL_SPEED; powerUp.phase += .12; });
+      powerUps = powerUps.filter(powerUp => {
+        if (Math.hypot(powerUp.x - plane.x, powerUp.y - plane.y) < 34) {
+          lives = Math.min(3, lives + 1);
+          explosions.push({ x: powerUp.x, y: powerUp.y, age: 0 });
+          return false;
+        }
+        return powerUp.x > -30;
+      });
+      if (!enemyFighters.length && --fighterTimer <= 0) {
+        enemyFighters.push({
+          x: W + 100,
+          baseY: 90 + Math.random() * (ground - 210),
+          y: 0,
+          phase: Math.random() * Math.PI * 2,
+          age: 0,
+          speed: 5.4,
+          fireCooldown: 42,
+          alive: true
+        });
+        fighterTimer = 620 + Math.floor(Math.random() * 360);
+      }
+      enemyFighters.forEach(fighter => {
+        fighter.age++;
+        fighter.x -= fighter.speed;
+        fighter.baseY += (plane.y - fighter.baseY) * .004;
+        fighter.baseY = Math.max(60, Math.min(ground - 80, fighter.baseY));
+        fighter.y = fighter.baseY + Math.sin(fighter.age * .022 + fighter.phase) * 38;
+        if (Math.abs(fighter.x - plane.x) < 94 && Math.abs(fighter.y - plane.y) < 34) crashPlaneIntoFighter();
+        if (--fighter.fireCooldown <= 0) {
+          enemyShots.push({ x: fighter.x - 32, y: fighter.y, vx: -9, vy: 0 });
+          fighter.fireCooldown = 52;
+        }
+      });
+      enemyFighters = enemyFighters.filter(fighter => fighter.alive && fighter.x > -100);
+      if (!barn.alive) {
+        if (--barn.respawnTimer <= 0) { barn.alive = true; barn.x = W + 550 + Math.random() * 500; barn.fireCooldown = 85; }
+      } else {
+        barn.x -= GROUND_SCROLL_SPEED;
+        if (barn.x < -80) { barn.x = W + 550 + Math.random() * 500; barn.fireCooldown = 85; }
+      }
+      if (barn.alive && barn.x > -60 && barn.x < W + 60) {
+        const barnY = barnBaseY() - 82 * BARN_SCALE;
+        barn.angle = Math.atan2(plane.y - barnY, plane.x - barn.x);
+        if (--barn.fireCooldown <= 0) {
+          const shotSpeed = 2.65;
+          tankShots.push({ source: 'barn', x: barn.x + Math.cos(barn.angle) * 27, y: barnY + Math.sin(barn.angle) * 27, vx: Math.cos(barn.angle) * shotSpeed, vy: Math.sin(barn.angle) * shotSpeed });
+          barn.fireCooldown = 85;
+        }
+      }
+      if (plane.cooldown) plane.cooldown--; if (plane.invulnerable) plane.invulnerable--;
+      if (!blimp.alive && --blimp.respawnTimer <= 0) {
+        blimp.alive = true;
+        blimp.x = W + 80;
+        blimp.y = 55 + Math.random() * (ground - 110);
+        blimp.vx = -1.25;
+        blimp.vy = Math.random() < .5 ? -.78 : .78;
+        blimp.fireCooldown = 95;
+      }
+      const previousBlimpX = blimp.x;
+      blimp.x += blimp.vx;
+      blimp.y += blimp.vy;
+      if (blimp.x < 85 || blimp.x > W - 85) blimp.vx *= -1;
+      if (blimp.y < 55 || blimp.y > ground - 55) blimp.vy *= -1;
+      const desiredFacing = blimp.x >= previousBlimpX ? 1 : -1;
+      if (desiredFacing !== blimp.facing && !blimp.turning) { blimp.turning = true; blimp.turnProgress = 0; blimp.turnTick = 0; }
+      if (blimp.turning) {
+        if (++blimp.turnTick >= 6) { blimp.turnTick = 0; blimp.turnProgress++; }
+        blimp.frame = blimp.facing === 1 ? Math.min(4, 1 + blimp.turnProgress) : Math.max(0, 3 - blimp.turnProgress);
+        if (blimp.turnProgress >= 3) { blimp.facing = desiredFacing; blimp.turning = false; blimp.frame = blimp.facing === 1 ? 0 : 4; }
+      } else {
+        blimp.frame = blimp.facing === 1 ? 0 : 4;
+      }
+      if (blimp.alive && Math.abs(plane.x - blimp.x) < 110 && Math.abs(plane.y - blimp.y) < 45) crashPlaneIntoBlimp();
+      if (blimp.alive && --blimp.fireCooldown <= 0) {
+        const dx = plane.x - blimp.x, dy = plane.y - (blimp.y + 26), length = Math.hypot(dx, dy) || 1;
+        enemyShots.push({ x: blimp.x, y: blimp.y + 26, vx: dx / length * 3.3, vy: dy / length * 3.3 });
+        blimp.fireCooldown = 105;
+      }
+      enemyShots.forEach(shot => { shot.x += shot.vx; shot.y += shot.vy; });
+      enemyShots = enemyShots.filter(shot => {
+        if (hitsBomber(shot.x, shot.y)) { loseHullPoint(); return false; }
+        return shot.x > -20 && shot.x < W + 20 && shot.y > -20 && shot.y < H + 20;
+      });
+      tankShots.forEach(shot => { shot.x += shot.vx; shot.y += shot.vy; });
+      tankShots = tankShots.filter(shot => {
+        if (hitsBomber(shot.x, shot.y)) { loseHullPoint(); return false; }
+        return shot.x > -20 && shot.x < W + 20 && shot.y > -20 && shot.y < H + 20;
+      });
+      bombs.forEach(b => {
+        b.x += b.vx; b.y += b.vy; b.vx *= .993; b.vy += .098;
+        // Rotate clockwise in flight, stopping upright to match the source art.
+        b.angle = Math.min(0, b.angle + .012);
+      });
+      bombs = bombs.filter(b => {
+        const hit = tanks.find(t => t.alive && Math.abs(t.x - b.x) < 27 && Math.abs(t.y - b.y) < 22);
+        const fighterHit = enemyFighters.find(fighter => fighter.alive && Math.abs(fighter.x - b.x) < 40 && Math.abs(fighter.y - b.y) < 24);
+        const blimpHit = blimp.alive && Math.abs(blimp.x - b.x) < 77 && Math.abs(blimp.y - b.y) < 43;
+        const terrainAtBomb = terrainY(b.x);
+        const barnHit = barn.alive && Math.abs(barn.x - b.x) < 48 * BARN_SCALE && b.y > barnBaseY() - 116 * BARN_SCALE && b.y < barnBaseY() + 5;
+        if (hit || fighterHit || blimpHit || barnHit || b.y >= terrainAtBomb) {
+          explosions.push({ x: b.x, y: Math.min(b.y, terrainAtBomb), age: 0 });
+          if (hit) { hit.alive = false; score += 10; }
+          if (fighterHit) { fighterHit.alive = false; score += 5; }
+          if (blimpHit) { blimp.alive = false; blimp.respawnTimer = 360; score += 5; }
+          if (barnHit) { barn.alive = false; barn.respawnTimer = 260; score += 20; }
+          return false;
+        }
+        return true;
+      });
+      explosions.forEach(e => e.age++); explosions = explosions.filter(e => e.age < 28);
+      if (score >= MISSION_GOAL) {
+        won = true;
+        bombs = [];
+        enemyShots = [];
+        tankShots = [];
+        status.textContent = `Mission complete! Score: ${score}`;
+      } else if (!won) {
+        status.textContent = `Score: ${score} · Hull: ${lives} · Goal: ${MISSION_GOAL}`;
+      }
+    }
+    function render() {
+      ctx.setTransform(DISPLAY_SCALE, 0, 0, DISPLAY_SCALE, 0, 0);
+      if (waitingToStart) {
+        const briefing = ctx.createLinearGradient(0, 0, 0, H);
+        briefing.addColorStop(0, '#4ba6d4'); briefing.addColorStop(1, '#102238');
+        ctx.fillStyle = briefing; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 42px system-ui';
+        ctx.fillText('SKY STRIKE', W / 2, H / 2 - 18);
+        return;
+      }
+      const sky = ctx.createLinearGradient(0,0,0,ground); sky.addColorStop(0,'#4ba6d4'); sky.addColorStop(1,'#c9eced'); ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+      const cloudX = (base, rate) => ((base - scrollOffset * rate + W + 140) % (W + 280)) - 140;
+      drawCloud(cloudX(120,.12),75,.7); drawCloud(cloudX(660,.18),115,1); drawCloud(cloudX(400,.08),205,.5);
+      ctx.fillStyle = '#6c9b4e'; ctx.beginPath(); ctx.moveTo(0,H);
+      for (let x = 0; x <= W; x += 12) ctx.lineTo(x, terrainY(x));
+      ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
+      const treeX = base => (((base - scrollOffset + W + 140) % (W + 280) + (W + 280)) % (W + 280)) - 140;
+      drawBarn();
+      [[90,.72],[285,1.05],[510,.8],[730,1.15],[920,.68]].forEach(([x, size]) => { const xPos = treeX(x); drawPine(xPos, terrainY(xPos) + 8, size); });
+      tanks.forEach(drawTank); drawBlimp(); enemyFighters.forEach(drawEnemyFighter); powerUps.forEach(drawPowerUp); drawPlane();
+      bombs.forEach(b => {
+        ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.angle);
+        if (bombSprite.complete && bombSprite.naturalWidth) {
+          ctx.filter = 'grayscale(.25) sepia(.95) saturate(1.25) hue-rotate(352deg) brightness(.86)';
+          ctx.drawImage(bombSprite, -10, -16, 20, 32);
+          ctx.filter = 'none';
+        } else { ctx.fillStyle='#87583f'; ctx.beginPath(); ctx.ellipse(0,0,5,10,0,0,Math.PI*2); ctx.fill(); }
+        ctx.restore();
+      });
+      enemyShots.forEach(shot => { ctx.fillStyle='#87583f'; ctx.beginPath(); ctx.arc(shot.x,shot.y,5,0,Math.PI*2); ctx.fill(); });
+      tankShots.forEach(shot => { ctx.fillStyle='#87583f'; ctx.beginPath(); ctx.arc(shot.x,shot.y,5,0,Math.PI*2); ctx.fill(); });
+      explosions.forEach(e => { const r = 10 + e.age*1.9; ctx.fillStyle = `rgba(255,${180-e.age*4},40,${1-e.age/28})`; ctx.beginPath(); ctx.arc(e.x,e.y,r,0,Math.PI*2); ctx.fill(); });
+      if (won) { ctx.fillStyle='#102238bd'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='bold 42px system-ui'; ctx.textAlign='center'; ctx.fillText('MISSION COMPLETE!',W/2,H/2); ctx.font='22px system-ui'; ctx.fillText('Press New mission to fly again',W/2,H/2+42); }
+      if (dead) { ctx.fillStyle='#271321c9'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='bold 42px system-ui'; ctx.textAlign='center'; ctx.fillText('PLANE DOWN',W/2,H/2); ctx.font='22px system-ui'; ctx.fillText(`Final score: ${score}. Press New mission to retry.`,W/2,H/2+42); }
+      if (paused) { ctx.fillStyle='#102238ae'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='bold 42px system-ui'; ctx.textAlign='center'; ctx.fillText('PAUSED',W/2,H/2); ctx.font='22px system-ui'; ctx.fillText('Press P to resume',W/2,H/2+42); }
+    }
+    function loop() { update(); render(); requestAnimationFrame(loop); }
+    addEventListener('keydown', e => {
+      if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','w','s'].includes(e.key)) e.preventDefault();
+      if (e.key.toLowerCase() === 'n' && !e.repeat) { newMission(); return; }
+      if (e.key.toLowerCase() === 'p' && !e.repeat && !won && !dead) { paused = !paused; status.textContent = paused ? 'Paused — press P to resume.' : 'Mission resumed.'; return; }
+      if (e.key === ' ') dropBomb(); keys[e.key] = true; keys[e.key.toLowerCase()] = true;
+    });
+    addEventListener('keyup', e => { keys[e.key] = false; keys[e.key.toLowerCase()] = false; });
+    [['slower','ArrowLeft'],['faster','ArrowRight'],['up','ArrowUp'],['down','ArrowDown']].forEach(([id,key]) => { const b=document.querySelector('#'+id); ['pointerdown','pointerup','pointerleave'].forEach(type => b.addEventListener(type, e => { e.preventDefault(); keys[key] = type === 'pointerdown'; })); });
+    document.querySelector('#bomb').addEventListener('click', dropBomb);
+    document.querySelector('#reset').addEventListener('click', newMission);
+    document.querySelector('#help').addEventListener('click', () => {
+      const panel = document.querySelector('#help-panel');
+      panel.hidden = !panel.hidden;
+      document.querySelector('#help').setAttribute('aria-expanded', String(!panel.hidden));
+    });
+    loop();
+  </script>
+</body>
+</html>
