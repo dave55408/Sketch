@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Add Two Numbers</title>
+    <style>
+      :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #f4f7fb; color: #172033; }
+      main { width: min(92vw, 440px); padding: 2.5rem; border-radius: 20px; background: #fff; box-shadow: 0 18px 50px #17203320; }
+      h1 { margin: 0 0 .45rem; font-size: 1.8rem; }
+      p { margin: 0 0 1.8rem; color: #5d687d; }
+      label { display: block; margin: 1rem 0 .4rem; font-weight: 650; }
+      input { width: 100%; padding: .8rem .9rem; border: 1px solid #cbd3e1; border-radius: 10px; font: inherit; }
+      input:focus { outline: 3px solid #a8c7ff; border-color: #3578e5; }
+      button { width: 100%; margin-top: 1.4rem; padding: .85rem; border: 0; border-radius: 10px; background: #2563d9; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+      button:hover { background: #1d4fb0; }
+      output { display: block; margin-top: 1.35rem; padding: 1rem; border-radius: 10px; background: #eef4ff; text-align: center; font-size: 1.15rem; font-weight: 700; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Add two numbers</h1>
+      <p>Enter any two values, then calculate their sum.</p>
+      <form id="adder">
+        <label for="first">First number</label>
+        <input id="first" name="first" type="number" step="any" required autofocus />
+        <label for="second">Second number</label>
+        <input id="second" name="second" type="number" step="any" required />
+        <button type="submit">Add numbers</button>
+      </form>
+      <output id="result" aria-live="polite">Your result will appear here.</output>
+    </main>
+    <script>
+      const form = document.querySelector('#adder');
+      const result = document.querySelector('#result');
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const first = Number(form.first.value);
+        const second = Number(form.second.value);
+        result.textContent = `${first} + ${second} = ${first + second}`;
+      });
+    </script>
+  </body>
+</html>

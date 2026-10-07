@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>String Mapper</title>
+  <style>
+    :root {
+      --bg: #f4efe6;
+      --panel: rgba(255, 251, 245, 0.88);
+      --panel-strong: #fffaf2;
+      --text: #2d241d;
+      --muted: #706255;
+      --line: rgba(85, 64, 40, 0.16);
+      --accent: #d97a2b;
+      --accent-strong: #a94f19;
+      --accent-soft: rgba(217, 122, 43, 0.14);
+      --success: #306844;
+      --shadow: 0 24px 60px rgba(77, 50, 25, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(231, 191, 145, 0.55), transparent 30%),
+        radial-gradient(circle at bottom right, rgba(181, 209, 178, 0.4), transparent 28%),
+        linear-gradient(180deg, #f8f2e9 0%, #efe5d8 100%);
+    }
+
+    .page {
+      width: min(1020px, calc(100% - 24px));
+      margin: 16px auto;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.4fr 0.8fr;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: center;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 3.2vw, 2.35rem);
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .lead {
+      margin: 8px 0 0;
+      max-width: 42rem;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.92rem;
+    }
+
+    .hero-note {
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.5);
+      border: 1px solid var(--line);
+    }
+
+    .hero-note strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 0.72rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    .hero-note p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.35;
+      font-size: 0.86rem;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .card {
+      padding: 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+    }
+
+    .card h2,
+    .card h3 {
+      margin: 0 0 8px;
+      font-size: 1rem;
+    }
+
+    .field-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    label {
+      display: grid;
+      gap: 4px;
+      color: var(--muted);
+      font-size: 0.82rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 10px;
+      border: 1px solid rgba(85, 64, 40, 0.18);
+      font: inherit;
+      color: var(--text);
+      background: #fff;
+    }
+
+    input:focus {
+      outline: 2px solid rgba(217, 122, 43, 0.25);
+      border-color: var(--accent);
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 9px 14px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 120ms ease, opacity 120ms ease, background 120ms ease;
+      font-size: 0.84rem;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, var(--accent), #efac52);
+      color: #24160d;
+    }
+
+    .secondary-btn {
+      background: rgba(84, 61, 38, 0.08);
+      color: var(--text);
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 0.95fr) minmax(240px, 0.8fr) minmax(0, 0.95fr);
+      gap: 12px;
+      align-items: start;
+    }
+
+    .stack {
+      display: grid;
+      gap: 8px;
+    }
+
+    .stack-title {
+      margin: 0 0 2px;
+      font-size: 0.76rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent-strong);
+    }
+
+    .tile {
+      padding: 11px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 240, 228, 0.92));
+      box-shadow: 0 10px 25px rgba(70, 45, 26, 0.08);
+    }
+
+    .tile strong {
+      display: block;
+      font-size: 0.92rem;
+    }
+
+    .tile small {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .draggable {
+      cursor: grab;
+    }
+
+    .draggable:active {
+      cursor: grabbing;
+    }
+
+    .draggable.dragging {
+      opacity: 0.45;
+      transform: scale(0.98);
+    }
+
+    .map-board {
+      display: grid;
+      gap: 10px;
+    }
+
+    .map-row {
+      padding: 10px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(249, 244, 236, 0.95), rgba(255, 251, 245, 0.95));
+    }
+
+    .map-row-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 6px;
+    }
+
+    .map-row-header span {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .dropzone {
+      min-height: 68px;
+      padding: 8px;
+      border-radius: 12px;
+      border: 2px dashed rgba(169, 79, 25, 0.25);
+      background: rgba(217, 122, 43, 0.06);
+      display: grid;
+      gap: 8px;
+      align-content: start;
+      color: var(--muted);
+      transition: background 120ms ease, border-color 120ms ease, transform 120ms ease;
+    }
+
+    .dropzone.active {
+      background: rgba(217, 122, 43, 0.15);
+      border-color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    .dropzone .mapped-card {
+      width: 100%;
+      text-align: left;
+    }
+
+    .dropzone-empty {
+      min-height: 44px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      font-size: 0.78rem;
+    }
+
+    .zone-item {
+      display: grid;
+      gap: 6px;
+      position: relative;
+    }
+
+    .mapped-card {
+      padding: 10px 34px 10px 10px;
+      border-radius: 12px;
+      background: #fff;
+      border: 1px solid rgba(48, 104, 68, 0.2);
+      box-shadow: inset 0 0 0 1px rgba(48, 104, 68, 0.04);
+    }
+
+    .mapped-card strong {
+      color: var(--success);
+    }
+
+    .remove-chip {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border-radius: 999px;
+      background: rgba(84, 61, 38, 0.1);
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+      font-weight: 700;
+      line-height: 1;
+    }
+
+    .remove-chip:hover {
+      background: rgba(169, 79, 25, 0.18);
+    }
+
+    .summary {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255, 252, 247, 0.8);
+    }
+
+    .summary h3 {
+      margin: 0 0 6px;
+      font-size: 0.95rem;
+    }
+
+    .summary-list {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      line-height: 1.45;
+      font-size: 0.84rem;
+    }
+
+    .empty-state {
+      color: var(--muted);
+      font-style: italic;
+      font-size: 0.82rem;
+    }
+
+    .footer-actions {
+      margin-top: 10px;
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .preview-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(45, 36, 29, 0.42);
+      backdrop-filter: blur(4px);
+      z-index: 10;
+    }
+
+    .preview-overlay.open {
+      display: flex;
+    }
+
+    .preview-dialog {
+      width: min(520px, 100%);
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: var(--panel-strong);
+      box-shadow: 0 18px 45px rgba(45, 36, 29, 0.18);
+    }
+
+    .preview-dialog h3 {
+      margin: 0 0 6px;
+      font-size: 1rem;
+    }
+
+    .preview-dialog p {
+      margin: 0 0 10px;
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+
+    .preview-text {
+      margin: 0;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: rgba(244, 239, 230, 0.7);
+      color: var(--text);
+      font-family: "Courier New", monospace;
+      font-size: 0.82rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .preview-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .hero,
+      .composer,
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .page {
+        width: min(100% - 20px, 1120px);
+        margin: 10px auto;
+        padding: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="hero">
+      <div>
+        <h1>Drag-and-Drop String Mapper</h1>
+        <p class="lead">
+          Enter three strings in Section A and three strings in Section B, then drag any mix of those cards into
+          the three drop zones. Each zone can hold one A value and one B value.
+        </p>
+      </div>
+      <aside class="hero-note">
+        <strong>How It Works</strong>
+        <p>
+          Type your values, click <em>Load Items</em>, and drag cards from either side into zones One, Two, and Three.
+          Each zone can hold one value from Section A and one value from Section B.
+        </p>
+      </aside>
+    </section>
+
+    <section class="composer">
+      <section class="card" aria-labelledby="section-a-title">
+        <h2 id="section-a-title">Section A</h2>
+        <div class="field-list" id="section-a-inputs"></div>
+      </section>
+
+      <section class="card" aria-labelledby="section-b-title">
+        <h2 id="section-b-title">Section B</h2>
+        <div class="field-list" id="section-b-inputs"></div>
+      </section>
+    </section>
+
+    <div class="toolbar">
+      <button class="primary-btn" id="load-btn" type="button">Load Items</button>
+      <button class="secondary-btn" id="clear-btn" type="button">Clear Zones</button>
+      <button class="secondary-btn" id="example-btn" type="button">Use Example Values</button>
+    </div>
+
+    <section class="workspace" aria-label="Mapping workspace">
+      <section class="card stack" aria-labelledby="a-items-title">
+        <h3 class="stack-title" id="a-items-title">A Items</h3>
+        <div id="a-items"></div>
+      </section>
+
+      <section class="card" aria-labelledby="map-title">
+        <h3 class="stack-title" id="map-title">Drop Zones</h3>
+        <div class="map-board" id="map-board"></div>
+      </section>
+
+      <section class="card stack" aria-labelledby="b-items-title">
+        <h3 class="stack-title" id="b-items-title">B Items To Drag</h3>
+        <div id="b-items"></div>
+      </section>
+    </section>
+
+    <section class="summary" aria-live="polite">
+      <h3>Current Zones</h3>
+      <ol class="summary-list" id="summary-list"></ol>
+      <p class="empty-state" id="summary-empty">No values placed yet. Drag one A item and one B item into any zone.</p>
+    </section>
+
+    <div class="footer-actions">
+      <button class="primary-btn" id="generate-btn" type="button">Generate</button>
+    </div>
+  </main>
+
+  <div class="preview-overlay" id="preview-overlay" role="dialog" aria-modal="true" aria-labelledby="preview-title">
+    <section class="preview-dialog">
+      <h3 id="preview-title">Here's what you'll get</h3>
+      <p>Review the exported text below, then choose OK to generate the file or Cancel to go back.</p>
+      <pre class="preview-text" id="preview-text"></pre>
+      <div class="preview-actions">
+        <button class="secondary-btn" id="cancel-preview-btn" type="button">Cancel</button>
+        <button class="primary-btn" id="confirm-generate-btn" type="button">OK</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const sectionAInputs = document.getElementById("section-a-inputs");
+    const sectionBInputs = document.getElementById("section-b-inputs");
+    const aItemsEl = document.getElementById("a-items");
+    const bItemsEl = document.getElementById("b-items");
+    const mapBoardEl = document.getElementById("map-board");
+    const summaryListEl = document.getElementById("summary-list");
+    const summaryEmptyEl = document.getElementById("summary-empty");
+    const loadBtn = document.getElementById("load-btn");
+    const clearBtn = document.getElementById("clear-btn");
+    const exampleBtn = document.getElementById("example-btn");
+    const generateBtn = document.getElementById("generate-btn");
+    const previewOverlay = document.getElementById("preview-overlay");
+    const previewTextEl = document.getElementById("preview-text");
+    const cancelPreviewBtn = document.getElementById("cancel-preview-btn");
+    const confirmGenerateBtn = document.getElementById("confirm-generate-btn");
+
+    const aInputs = [];
+    const bInputs = [];
+
+    let itemsA = [];
+    let itemsB = [];
+    let zones = {
+      one: [],
+      two: [],
+      three: []
+    };
+    let draggedItemId = null;
+
+    function createInputFields(container, prefix, labelText, storage) {
+      for (let index = 0; index < 3; index += 1) {
+        const label = document.createElement("label");
+        label.setAttribute("for", `${prefix}-${index}`);
+        label.textContent = `${labelText} ${index + 1}`;
+
+        const input = document.createElement("input");
+        input.id = `${prefix}-${index}`;
+        input.type = "text";
+        input.placeholder = `${labelText} ${index + 1}`;
+
+        label.appendChild(input);
+        container.appendChild(label);
+        storage.push(input);
+      }
+    }
+
+    function getTrimmedValues(inputs, fallbackPrefix) {
+      return inputs.map((input, index) => ({
+        id: `${fallbackPrefix}-${index + 1}`,
+        text: input.value.trim() || `${fallbackPrefix.toUpperCase()} ${index + 1}`
+      }));
+    }
+
+    function getAllItems() {
+      return [...itemsA, ...itemsB];
+    }
+
+    function findItemById(itemId) {
+      return getAllItems().find((item) => item.id === itemId);
+    }
+
+    function getItemGroup(itemId) {
+      if (itemId.startsWith("a-")) {
+        return "A";
+      }
+      if (itemId.startsWith("b-")) {
+        return "B";
+      }
+      return "";
+    }
+
+    function getAssignedIds() {
+      return new Set(Object.values(zones).flat());
+    }
+
+    function createDraggableTile(item, hintText) {
+      const tile = document.createElement("article");
+      tile.className = "tile draggable";
+      tile.draggable = true;
+      tile.dataset.itemId = item.id;
+      tile.innerHTML = `<strong>${item.text}</strong><small>${hintText}</small>`;
+
+      tile.addEventListener("dragstart", () => {
+        draggedItemId = item.id;
+        tile.classList.add("dragging");
+      });
+
+      tile.addEventListener("dragend", () => {
+        draggedItemId = null;
+        tile.classList.remove("dragging");
+        clearDropzoneStates();
+      });
+
+      return tile;
+    }
+
+    function renderAvailableItems(container, items, sectionName) {
+      container.innerHTML = "";
+
+      const assignedIds = getAssignedIds();
+      const availableItems = items.filter((item) => !assignedIds.has(item.id));
+
+      if (availableItems.length === 0) {
+        const empty = document.createElement("p");
+        empty.className = "empty-state";
+        empty.textContent = `All ${sectionName} items are currently in a zone.`;
+        container.appendChild(empty);
+        return;
+      }
+
+      availableItems.forEach((item) => {
+        container.appendChild(createDraggableTile(item, `From Section ${sectionName}`));
+      });
+    }
+
+    function renderAItems() {
+      renderAvailableItems(aItemsEl, itemsA, "A");
+    }
+
+    function renderBItems() {
+      renderAvailableItems(bItemsEl, itemsB, "B");
+    }
+
+    function clearDropzoneStates() {
+      mapBoardEl.querySelectorAll(".dropzone").forEach((zone) => {
+        zone.classList.remove("active");
+      });
+    }
+
+    function removeItemFromZones(itemId) {
+      Object.keys(zones).forEach((zoneKey) => {
+        zones[zoneKey] = zones[zoneKey].filter((currentId) => currentId !== itemId);
+      });
+    }
+
+    function findZoneForItem(itemId) {
+      return Object.keys(zones).find((zoneKey) => zones[zoneKey].includes(itemId)) || null;
+    }
+
+    function assignToZone(zoneKey, itemId) {
+      if (!itemId) {
+        return;
+      }
+
+      const currentZoneKey = findZoneForItem(itemId);
+      const itemGroup = getItemGroup(itemId);
+      const zoneGroups = zones[zoneKey].map((currentId) => getItemGroup(currentId));
+
+      if (currentZoneKey !== zoneKey && zoneGroups.includes(itemGroup)) {
+        renderWorkspace();
+        return;
+      }
+
+      removeItemFromZones(itemId);
+
+      zones[zoneKey].push(itemId);
+      renderWorkspace();
+    }
+
+    function removeFromZone(zoneKey, itemId) {
+      zones[zoneKey] = zones[zoneKey].filter((currentId) => currentId !== itemId);
+      renderWorkspace();
+    }
+
+    function renderMapBoard() {
+      mapBoardEl.innerHTML = "";
+
+      const zoneLabels = {
+        one: "One",
+        two: "Two",
+        three: "Three"
+      };
+
+      Object.entries(zoneLabels).forEach(([zoneKey, zoneLabel]) => {
+        const row = document.createElement("section");
+        row.className = "map-row";
+
+        const header = document.createElement("div");
+        header.className = "map-row-header";
+        header.innerHTML = `<strong>${zoneLabel}</strong><span>${zones[zoneKey].map((id) => getItemGroup(id)).join(" + ") || "Open for A and B"}</span>`;
+
+        const zone = document.createElement("div");
+        zone.className = "dropzone";
+        zone.dataset.zoneKey = zoneKey;
+
+        zone.addEventListener("dragover", (event) => {
+          event.preventDefault();
+          zone.classList.add("active");
+        });
+
+        zone.addEventListener("dragleave", () => {
+          zone.classList.remove("active");
+        });
+
+        zone.addEventListener("drop", (event) => {
+          event.preventDefault();
+          zone.classList.remove("active");
+          assignToZone(zoneKey, draggedItemId);
+        });
+
+        if (zones[zoneKey].length > 0) {
+          zone.innerHTML = "";
+
+          zones[zoneKey].forEach((itemId) => {
+            const item = findItemById(itemId);
+            const wrapper = document.createElement("div");
+            wrapper.className = "zone-item";
+
+            const card = createDraggableTile(item, `In zone ${zoneLabel}`);
+            card.classList.remove("tile");
+            card.classList.add("mapped-card");
+
+            const removeBtn = document.createElement("button");
+            removeBtn.type = "button";
+            removeBtn.className = "remove-chip";
+            removeBtn.textContent = "x";
+            removeBtn.setAttribute("aria-label", `Remove ${item.text} from zone ${zoneLabel}`);
+            removeBtn.addEventListener("click", () => removeFromZone(zoneKey, itemId));
+
+            wrapper.appendChild(card);
+            wrapper.appendChild(removeBtn);
+            zone.appendChild(wrapper);
+          });
+        } else {
+          const emptyMessage = document.createElement("div");
+          emptyMessage.className = "dropzone-empty";
+          emptyMessage.textContent = "Drop one Section A item and one Section B item here";
+          zone.appendChild(emptyMessage);
+        }
+
+        row.appendChild(header);
+        row.appendChild(zone);
+        mapBoardEl.appendChild(row);
+      });
+    }
+
+    function renderSummary() {
+      summaryListEl.innerHTML = "";
+
+      const summaryEntries = Object.entries(zones)
+        .map(([zoneKey, ids]) => {
+          const label = zoneKey.charAt(0).toUpperCase() + zoneKey.slice(1);
+          const values = ids.map((itemId) => findItemById(itemId)?.text).filter(Boolean);
+          return { label, values };
+        })
+        .filter((entry) => entry.values.length > 0);
+
+      summaryEmptyEl.style.display = summaryEntries.length > 0 ? "none" : "block";
+
+      summaryEntries.forEach((summaryEntry) => {
+        const listItem = document.createElement("li");
+        listItem.textContent = `${summaryEntry.label}: ${summaryEntry.values.join(", ")}`;
+        summaryListEl.appendChild(listItem);
+      });
+    }
+
+    function renderWorkspace() {
+      renderAItems();
+      renderMapBoard();
+      renderBItems();
+      renderSummary();
+    }
+
+    function getZoneExportText() {
+      const zoneLabels = {
+        one: "One",
+        two: "Two",
+        three: "Three"
+      };
+
+      return Object.entries(zoneLabels).map(([zoneKey, zoneLabel]) => {
+        const values = zones[zoneKey]
+          .map((itemId) => {
+            const item = findItemById(itemId);
+            return item ? `${getItemGroup(itemId)}: ${item.text}` : null;
+          })
+          .filter(Boolean);
+
+        return `${zoneLabel}: ${values.length > 0 ? values.join(" | ") : "(empty)"}`;
+      }).join("\r\n");
+    }
+
+    function generateMappingFile() {
+      const exportText = getZoneExportText();
+      const blob = new Blob([exportText], { type: "text/plain;charset=utf-8" });
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = downloadUrl;
+      link.download = "current-mappings.txt";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(downloadUrl);
+    }
+
+    function openPreview() {
+      previewTextEl.textContent = getZoneExportText();
+      previewOverlay.classList.add("open");
+    }
+
+    function closePreview() {
+      previewOverlay.classList.remove("open");
+    }
+
+    function initializeZones() {
+      zones = {
+        one: [],
+        two: [],
+        three: []
+      };
+    }
+
+    function loadItems() {
+      itemsA = getTrimmedValues(aInputs, "a");
+      itemsB = getTrimmedValues(bInputs, "b");
+      initializeZones();
+      renderWorkspace();
+    }
+
+    function clearMappings() {
+      initializeZones();
+      renderWorkspace();
+    }
+
+    function setExampleValues() {
+      const exampleA = ["Apple", "Banana", "Cherry"];
+      const exampleB = ["Red", "Yellow", "Dark Red"];
+
+      aInputs.forEach((input, index) => {
+        input.value = exampleA[index];
+      });
+
+      bInputs.forEach((input, index) => {
+        input.value = exampleB[index];
+      });
+
+      loadItems();
+    }
+
+    createInputFields(sectionAInputs, "section-a", "A String", aInputs);
+    createInputFields(sectionBInputs, "section-b", "B String", bInputs);
+
+    loadBtn.addEventListener("click", loadItems);
+    clearBtn.addEventListener("click", clearMappings);
+    exampleBtn.addEventListener("click", setExampleValues);
+    generateBtn.addEventListener("click", openPreview);
+    cancelPreviewBtn.addEventListener("click", closePreview);
+    confirmGenerateBtn.addEventListener("click", () => {
+      generateMappingFile();
+      closePreview();
+    });
+    previewOverlay.addEventListener("click", (event) => {
+      if (event.target === previewOverlay) {
+        closePreview();
+      }
+    });
+
+    setExampleValues();
+  </script>
+</body>
+</html>

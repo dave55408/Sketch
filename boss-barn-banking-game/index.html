@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boss Barn Banking Run</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #102238; color: #f8fbff; }
+    * { box-sizing: border-box; }
+    body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: radial-gradient(circle at 50% 0%, #285679, #0c1724 72%); }
+    main { width: min(96vw, 1100px); padding: 20px; }
+    header { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; margin-bottom: 12px; }
+    h1, p { margin: 0; } h1 { font-size: clamp(1.1rem, 3vw, 1.8rem); letter-spacing: .05em; }
+    #status { color: #d6edff; font-weight: 700; }
+    .game-wrap { overflow: hidden; border: 4px solid #71b9dc; border-radius: 16px; background: #80cfef; box-shadow: 0 20px 50px #0009; }
+    canvas { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; touch-action: none; }
+    .controls { display: flex; justify-content: center; align-items: center; gap: 12px; margin: 16px 0 8px; }
+    button { min-width: 94px; padding: .65rem 1rem; border: 1px solid #8bc6e2; border-radius: 9px; background: #1d425e; color: white; font: inherit; font-weight: 800; cursor: pointer; }
+    button:hover, button:focus-visible { background: #2e6d94; outline: 3px solid #e0f7ff; outline-offset: 2px; }
+    .hint { text-align: center; color: #c2dbe9; font-size: .9rem; }
+    kbd { padding: 1px 5px; border: 1px solid #93b3c4; border-radius: 4px; background: #172d42; }
+    @media (max-width: 560px) { header { display: block; } #status { margin-top: 5px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>BOSS BARN BANKING RUN</h1><p id="status">Flying right</p></header>
+    <div class="game-wrap"><canvas id="game" width="1920" height="1080" aria-label="Bomber flying around the Boss Barn"></canvas></div>
+    <div class="controls"><button id="left" aria-label="Fly left">◀ Fly left</button><button id="up" aria-label="Fly up">▲ Fly up</button><button id="fire" aria-label="Fire machine gun">Fire</button><button id="down" aria-label="Fly down">▼ Fly down</button><button id="right" aria-label="Fly right">Fly right ▶</button></div>
+    <p class="hint">Fly with <kbd>←</kbd>/<kbd>→</kbd>/<kbd>↑</kbd>/<kbd>↓</kbd> or <kbd>W</kbd>/<kbd>A</kbd>/<kbd>S</kbd>/<kbd>D</kbd>. Hold <kbd>Space</kbd> or <strong>Fire</strong> to shoot straight ahead. Each barn piece takes five hits.</p>
+  </main>
+  <script>
+    const canvas = document.querySelector('#game');
+    const ctx = canvas.getContext('2d');
+    const status = document.querySelector('#status');
+    const bomberSprite = new Image();
+    bomberSprite.src = '../plane-bombing-game/assets/bomber-sprite-v2.png';
+    const fighterSprite = new Image();
+    fighterSprite.src = '../plane-bombing-game/assets/fighter-raider.png';
+    const muffledExplosionSound = new Audio('../sounds/muffled_explosion.mp3');
+    const metalKnockSound = new Audio('../sounds/metal-knock.mp3');
+    const enemyPlaneSound = new Audio('../sounds/engine-hum.mp3');
+    enemyPlaneSound.loop = true;
+    let audioContext, engineOscillator, engineGain;
+    const W = 960, H = 540, GROUND = 442, SCALE = 2, WORLD_W = W * 3;
+    let cameraX = 0, paused = false;
+    const banker = { x: 190, y: 178, direction: 1, speed: 3.25, turn: null, gunCooldown: 0, hull: 20, invulnerable: 0, pitch: 0 };
+    const keys = {};
+    const BARN_SCALE = .72, TOWER_GUN_Y = -70, TOWER_WALL_TOP = TOWER_GUN_Y - 2;
+    let shots = [], enemyShots = [], impactFlashes = [];
+    const bossFort = createBossFort();
+    const raiders = createRaiders();
+    const tanks = [createTank(510), createTank(1190), createTank(2320)];
+
+    // These are the five deliberate in-between poses used only while reversing.
+    // The narrowed widths preserve a visible fuselage, while every pose dips its nose.
+    const bankingFrames = [
+      { scaleX: .82, noseDip: .10 },
+      { scaleX: .62, noseDip: .19 },
+      { scaleX: .42, noseDip: .28 },
+      { scaleX: -.42, noseDip: .19 },
+      { scaleX: -.72, noseDip: .10 }
+    ];
+    const FRAME_DURATION = 7;
+
+    function enableAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        engineOscillator = audioContext.createOscillator();
+        engineGain = audioContext.createGain();
+        engineOscillator.type = 'sawtooth';
+        engineOscillator.frequency.value = 40;
+        engineGain.gain.value = 0;
+        engineOscillator.connect(engineGain).connect(audioContext.destination);
+        engineOscillator.start();
+      }
+      if (audioContext.state === 'suspended') audioContext.resume();
+    }
+    function updateEngineSound() {
+      if (!audioContext) return;
+      const now = audioContext.currentTime;
+      engineOscillator.frequency.setTargetAtTime(50, now, .08);
+      engineGain.gain.setTargetAtTime(paused ? 0 : .004, now, .08);
+    }
+    function playEnemyShotSound() {
+      if (!audioContext) return;
+      const now = audioContext.currentTime, oscillator = audioContext.createOscillator(), gain = audioContext.createGain();
+      oscillator.type = 'square'; oscillator.frequency.setValueAtTime(175, now); oscillator.frequency.exponentialRampToValueAtTime(95, now + .14);
+      gain.gain.setValueAtTime(.032, now); gain.gain.exponentialRampToValueAtTime(.001, now + .14);
+      oscillator.connect(gain).connect(audioContext.destination); oscillator.start(now); oscillator.stop(now + .15);
+    }
+    function playExplosionSound() { if (audioContext) { const sound = muffledExplosionSound.cloneNode(); sound.volume = .5; sound.play().catch(() => {}); } }
+    function playDamageSound() { if (audioContext) { const sound = metalKnockSound.cloneNode(); sound.volume = .11; sound.play().catch(() => {}); } }
+    function updateRaiderSound() {
+      if (!audioContext) return;
+      enemyPlaneSound.volume = .018;
+      if (!paused && enemyPlaneSound.paused) enemyPlaneSound.play().catch(() => {});
+      if (paused && !enemyPlaneSound.paused) { enemyPlaneSound.pause(); enemyPlaneSound.currentTime = 0; }
+    }
+
+    function requestDirection(nextDirection) {
+      if (nextDirection === banker.direction && !banker.turn) return;
+      if (banker.turn && banker.turn.to === nextDirection) return;
+      const from = banker.turn ? banker.turn.to : banker.direction;
+      if (from === nextDirection) { banker.turn = null; banker.direction = nextDirection; return; }
+      banker.turn = { from: banker.direction, to: nextDirection, age: 0 };
+    }
+
+    function terrainY(x) { return GROUND - 25 * Math.sin(x * .012) - 12 * Math.sin(x * .027 + .7); }
+
+    function createBossFort() {
+      const step = 88 * BARN_SCALE, stackHeight = 64 * BARN_SCALE;
+      const layout = [[0, 0], [0, -stackHeight], [step, 0], [step * 2, 0], [step * 3, 0], [step * 3, -stackHeight]];
+      return { x: W * 1.55, width: step * 4, barns: layout.map(([offset, yOffset], index) => ({ offset, yOffset, alive: true, hits: 0, fireCooldown: 68 + index * 13 })) };
+    }
+    function createRaiders() {
+      return [760, 1120, 2040, 2510].map((x, index) => createRaider(x, 92 + index * 78, index + 1));
+    }
+    function createRaider(x, y, aggression) {
+      return { x, y, aggression, hull: 20, alive: true, respawn: 0, fireCooldown: 128 - (aggression - 1) * 17, phase: aggression * 1.4, facing: x > banker.x ? -1 : 1, turn: null, pitch: 0 };
+    }
+    function createTank(x) { return { x, y: terrainY(x) - 23, hull: 5, angle: 0, slopeAngle: 0, fireCooldown: 150, alive: true }; }
+    function respawnRaider(raider) {
+      const spawnOnRight = banker.direction >= 0;
+      Object.assign(raider, createRaider(spawnOnRight ? cameraX + W + 130 : cameraX - 130, 65 + Math.random() * 250, raider.aggression));
+    }
+    function bossBarnBaseY(section) {
+      const x = bossFort.x + section.offset;
+      let grassY = terrainY(x);
+      for (let offset = -44 * BARN_SCALE; offset <= 44 * BARN_SCALE; offset += 8) grassY = Math.max(grassY, terrainY(x + offset));
+      return grassY + section.yOffset;
+    }
+    function drawBossFortBarn(section) {
+      if (!section.alive) return;
+      const x = bossFort.x + section.offset, baseY = bossBarnBaseY(section);
+      ctx.save(); ctx.translate(x, baseY); ctx.scale(BARN_SCALE, BARN_SCALE);
+      const hasBarnAbove = section.yOffset === 0 && bossFort.barns.some(other => other.offset === section.offset && other.yOffset < section.yOffset);
+      const lowerSection = section.yOffset < 0 && bossFort.barns.find(other => other.offset === section.offset && other.yOffset === 0);
+      if (lowerSection && !lowerSection.alive) { ctx.fillStyle = '#111417'; [-31, 27].forEach(legX => ctx.fillRect(legX, 0, 4, 64)); }
+      ctx.fillStyle = '#f2f5f1'; ctx.fillRect(-44, hasBarnAbove ? TOWER_WALL_TOP : -64, 88, hasBarnAbove ? -TOWER_WALL_TOP : 64);
+      if (!hasBarnAbove) { ctx.fillStyle = '#4b555a'; ctx.beginPath(); ctx.moveTo(-55,-64); ctx.lineTo(0,-112); ctx.lineTo(55,-64); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle = '#e4b268'; ctx.fillRect(-12,-43,24,43);
+      ctx.fillStyle = '#3d5360'; ctx.fillRect(-34,-52,16,16); ctx.fillRect(18,-52,16,16);
+      if (section.yOffset === 0 && !hasBarnAbove) { ctx.fillStyle = '#4b555a'; ctx.fillRect(-11, -85, 22, 10); }
+      if (!hasBarnAbove) { ctx.fillStyle = '#26313d'; ctx.fillRect(0, -85, 32, 6); }
+      ctx.fillStyle = '#17212a'; ctx.fillRect(-24, -122, 48, 5);
+      ctx.fillStyle = '#f0c95d'; ctx.fillRect(-24, -122, 48 * (5 - section.hits) / 5, 5);
+      ctx.restore();
+    }
+    function drawBossFortTowerGun(section) {
+      const hasBarnAbove = section.yOffset === 0 && bossFort.barns.some(other => other.offset === section.offset && other.yOffset < section.yOffset);
+      if (!section.alive || !hasBarnAbove) return;
+      ctx.save(); ctx.translate(bossFort.x + section.offset, bossBarnBaseY(section)); ctx.scale(BARN_SCALE, BARN_SCALE);
+      ctx.fillStyle = '#4b555a'; ctx.fillRect(-11, TOWER_GUN_Y - 3, 22, 10);
+      ctx.fillStyle = '#26313d'; ctx.fillRect(0, TOWER_GUN_Y, 32, 6);
+      ctx.restore();
+    }
+    function drawRaider(raider) {
+      if (!raider.alive) return;
+      const palette = [
+        ['#59615e', '#7d8882', '#3d4542', '#b4d1d6'],
+        ['#526b70', '#739099', '#354c54', '#b3d6dc'],
+        ['#426d82', '#6098b2', '#2e5264', '#bbdff0'],
+        ['#2676a5', '#4da8dc', '#174b75', '#d1f1ff']
+      ][raider.aggression - 1];
+      let scaleX = raider.facing, noseDip = 0;
+      if (raider.turn) {
+        const frame = bankingFrames[Math.min(bankingFrames.length - 1, Math.floor(raider.turn.age / FRAME_DURATION))];
+        scaleX = raider.turn.from * frame.scaleX;
+        noseDip = frame.noseDip * (scaleX >= 0 ? 1 : -1);
+      }
+      const pitchAngle = -raider.pitch * (scaleX >= 0 ? 1 : -1);
+      ctx.save(); ctx.translate(raider.x, raider.y); ctx.rotate(noseDip + pitchAngle); ctx.scale(scaleX, 1);
+      // Rendered raider silhouette rather than a pixel sprite.
+      ctx.fillStyle = palette[0]; ctx.beginPath(); ctx.moveTo(-32,0); ctx.lineTo(-18,-6); ctx.lineTo(25,-5); ctx.lineTo(34,0); ctx.lineTo(25,5); ctx.lineTo(-18,6); ctx.closePath(); ctx.fill();
+      // Four separate fins: above, below, ahead of, and behind the raider body.
+      ctx.fillStyle = palette[1]; ctx.beginPath(); ctx.moveTo(-7,-2); ctx.lineTo(4,-14); ctx.lineTo(13,-2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = palette[2]; ctx.beginPath(); ctx.moveTo(-7,2); ctx.lineTo(4,14); ctx.lineTo(13,2); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = palette[2]; ctx.beginPath(); ctx.moveTo(-20,-3); ctx.lineTo(-39,-10); ctx.lineTo(-30,3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = palette[3]; ctx.fillRect(16, -3, 8, 4);
+      ctx.restore();
+      ctx.save(); ctx.translate(raider.x, raider.y);
+      ctx.beginPath(); ctx.arc(0, -23, 7, 0, Math.PI * 2);
+      ctx.strokeStyle = '#d9f6e5'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 8px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(raider.hull), 0, -23);
+      ctx.restore();
+    }
+    function drawTank(tank) {
+      if (!tank.alive) return;
+      ctx.save(); ctx.translate(tank.x, tank.y + 8.3); ctx.scale(.64, .64); ctx.rotate(tank.slopeAngle);
+      ctx.fillStyle = '#1d5b39'; ctx.fillRect(-28, -12, 56, 15);
+      ctx.fillStyle = '#143d28'; ctx.fillRect(-32, 4, 64, 10);
+      ctx.fillStyle = '#3f9861'; ctx.fillRect(-13, -25, 26, 16);
+      ctx.save(); ctx.translate(0, -17); ctx.rotate(tank.angle - tank.slopeAngle); ctx.fillStyle = '#163f29'; ctx.fillRect(0, -3, 35, 6); ctx.restore();
+      ctx.fillStyle = '#081b14'; [-19, 19].forEach(x => { ctx.beginPath(); ctx.arc(x, 14, 9, 0, Math.PI * 2); ctx.fill(); });
+      ctx.restore();
+    }
+    function fireMachineGun() {
+      if (banker.gunCooldown) return;
+      enableAudio();
+      const shotDirection = banker.turn && banker.turn.age >= bankingFrames.length * FRAME_DURATION / 2 ? banker.turn.to : banker.direction;
+      const muzzleX = banker.x + shotDirection * 36;
+      shots.push({ x: muzzleX, y: banker.y, originX: muzzleX, direction: shotDirection });
+      playEnemyShotSound();
+      banker.gunCooldown = 5;
+    }
+
+    function drawBomber() {
+      let scaleX = banker.direction, noseDip = 0;
+      if (banker.turn) {
+        const frameIndex = Math.min(bankingFrames.length - 1, Math.floor(banker.turn.age / FRAME_DURATION));
+        const frame = bankingFrames[frameIndex];
+        scaleX = banker.turn.from * frame.scaleX;
+        // Rotate in the direction that always lowers the plane's visible nose.
+        noseDip = frame.noseDip * (scaleX >= 0 ? 1 : -1);
+      }
+      const pitchAngle = -banker.pitch * (scaleX >= 0 ? 1 : -1);
+      ctx.save(); ctx.translate(banker.x, banker.y + Math.sin(performance.now() * .004) * 3); ctx.rotate(noseDip + pitchAngle); ctx.scale(scaleX, 1);
+      // Rendered bomber shape: this replaces the pixel sprite while preserving its compact scale.
+      ctx.fillStyle = '#607987'; ctx.beginPath(); ctx.moveTo(-32, 0); ctx.lineTo(-18, -7); ctx.lineTo(24, -6); ctx.lineTo(34, 0); ctx.lineTo(24, 6); ctx.lineTo(-18, 7); ctx.closePath(); ctx.fill();
+      // Four visible fins extend in all directions from the bomber body.
+      ctx.fillStyle = '#a9c2cd'; ctx.beginPath(); ctx.moveTo(-8, -3); ctx.lineTo(7, -19); ctx.lineTo(15, -3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#7894a1'; ctx.beginPath(); ctx.moveTo(-8, 3); ctx.lineTo(7, 19); ctx.lineTo(15, 3); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#415b68'; ctx.beginPath(); ctx.moveTo(-18, -4); ctx.lineTo(-40, -12); ctx.lineTo(-30, 4); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#d9edf3'; ctx.beginPath(); ctx.arc(20, -1, 4.9, Math.PI, 0); ctx.lineTo(15.1, -1); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = '#263d49'; ctx.lineWidth = 1.2; ctx.beginPath(); ctx.moveTo(-28, 0); ctx.lineTo(29, 0); ctx.stroke();
+      ctx.restore();
+      // The same transparent hull badge used on the original bomber.
+      ctx.save(); ctx.translate(banker.x, banker.y + Math.sin(performance.now() * .004) * 3);
+      ctx.beginPath(); ctx.arc(-16, -23, 8, 0, Math.PI * 2);
+      ctx.strokeStyle = banker.hull > 0 ? '#d9f6e5' : '#ffc6cc'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(String(banker.hull), -16, -23);
+      ctx.restore();
+    }
+
+    function update() {
+      let velocity = banker.direction;
+      if (banker.turn) {
+        const progress = Math.min(1, banker.turn.age / (bankingFrames.length * FRAME_DURATION));
+        velocity = banker.turn.from + (banker.turn.to - banker.turn.from) * progress;
+        banker.turn.age++;
+        if (banker.turn.age >= bankingFrames.length * FRAME_DURATION) {
+          banker.direction = banker.turn.to;
+          banker.turn = null;
+        }
+      }
+      banker.x = Math.max(70, Math.min(WORLD_W - 70, banker.x + velocity * banker.speed));
+      const verticalInput = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0);
+      // Permit low flight below the terrain height, while render order keeps the bomber in front of the grass.
+      banker.y = Math.max(48, Math.min(terrainY(banker.x) + 90, banker.y + verticalInput * 3.1));
+      banker.pitch += (-verticalInput * .18 - banker.pitch) * .18;
+      if (banker.invulnerable) banker.invulnerable--;
+      cameraX = Math.max(0, Math.min(WORLD_W - W, banker.x - W * .42));
+      if (!banker.turn) status.textContent = `Flying ${banker.direction === 1 ? 'right' : 'left'}`;
+      else status.textContent = `Banking — frame ${Math.min(5, Math.floor((banker.turn.age - 1) / FRAME_DURATION) + 1)} of 5`;
+    }
+
+    function updateCombat() {
+      if (banker.gunCooldown) banker.gunCooldown--;
+      if (keys.fire) fireMachineGun();
+      shots.forEach(shot => { shot.x += shot.direction * 12; });
+      shots = shots.filter(shot => {
+        const hitTank = tanks.find(tank => tank.alive && Math.abs(tank.x - shot.x) < 29 && Math.abs(tank.y - shot.y) < 23);
+        if (hitTank) {
+          hitTank.hull--;
+          impactFlashes.push({ x: shot.x, y: shot.y, age: 0 });
+          if (hitTank.hull <= 0) { hitTank.alive = false; playExplosionSound(); }
+          return false;
+        }
+        const hitRaider = raiders.find(raider => raider.alive && Math.abs(raider.x - shot.x) < 32 && Math.abs(raider.y - shot.y) < 16);
+        if (hitRaider) {
+          hitRaider.hull--;
+          impactFlashes.push({ x: shot.x, y: shot.y, age: 0 });
+          if (hitRaider.hull <= 0) { hitRaider.alive = false; hitRaider.respawn = 90; playExplosionSound(); }
+          return false;
+        }
+        const hitSection = bossFort.barns.find(section => section.alive && Math.abs(bossFort.x + section.offset - shot.x) < 48 * BARN_SCALE && shot.y > bossBarnBaseY(section) - 116 * BARN_SCALE && shot.y < bossBarnBaseY(section) + 5);
+        if (!hitSection) return shot.x > -20 && shot.x < WORLD_W + 20;
+        hitSection.hits++;
+        impactFlashes.push({ x: shot.x, y: shot.y, age: 0 });
+        if (hitSection.hits >= 5) { hitSection.alive = false; playExplosionSound(); }
+        return false;
+      });
+      tanks.forEach(tank => {
+        if (!tank.alive) return;
+        tank.y = terrainY(tank.x) - 23;
+        tank.slopeAngle = Math.atan2(terrainY(tank.x + 10) - terrainY(tank.x - 10), 20);
+        tank.angle = Math.atan2(banker.y - (tank.y - 9), banker.x - tank.x);
+        if (--tank.fireCooldown <= 0) {
+          enemyShots.push({ x: tank.x + Math.cos(tank.angle) * 24, y: tank.y - 9 + Math.sin(tank.angle) * 24, vx: Math.cos(tank.angle) * 2.65, vy: Math.sin(tank.angle) * 2.65 });
+          playEnemyShotSound();
+          tank.fireCooldown = 160;
+        }
+      });
+      bossFort.barns.forEach(section => {
+        if (!section.alive || Math.abs(bossFort.x + section.offset - banker.x) > W * 1.1 || --section.fireCooldown > 0) return;
+        const gunX = bossFort.x + section.offset + 20 * BARN_SCALE;
+        const gunY = bossBarnBaseY(section) - (section.yOffset === 0 ? 82 : 64) * BARN_SCALE;
+        const dx = banker.x - gunX, dy = banker.y - gunY, length = Math.hypot(dx, dy) || 1;
+        enemyShots.push({ x: gunX, y: gunY, vx: dx / length * 3.5, vy: dy / length * 3.5 });
+        playEnemyShotSound();
+        section.fireCooldown = 88 + Math.floor(Math.random() * 25);
+      });
+      raiders.forEach(raider => {
+        if (!raider.alive) {
+          if (--raider.respawn <= 0) respawnRaider(raider);
+          return;
+        }
+        const dx = banker.x - raider.x, dy = banker.y - raider.y;
+        const distance = Math.hypot(dx, dy) || 1;
+        // Four raiders steer steadily toward the bomber, even during a ground dive.
+        const pursuitSpeed = .7 + raider.aggression * .55;
+        raider.x += dx / distance * pursuitSpeed;
+        raider.y += dy / distance * pursuitSpeed;
+        raider.pitch += (-Math.sign(dy) * .14 - raider.pitch) * .12;
+        const desiredFacing = dx >= 0 ? 1 : -1;
+        if (!raider.turn && desiredFacing !== raider.facing) raider.turn = { from: raider.facing, to: desiredFacing, age: 0 };
+        if (raider.turn && ++raider.turn.age >= bankingFrames.length * FRAME_DURATION) {
+          raider.facing = raider.turn.to;
+          raider.turn = null;
+        }
+        if (--raider.fireCooldown <= 0) {
+          const fireDx = banker.x - raider.x, fireDy = banker.y - raider.y, fireDistance = Math.hypot(fireDx, fireDy) || 1;
+          enemyShots.push({ x: raider.x + fireDx / fireDistance * 24, y: raider.y + fireDy / fireDistance * 24, vx: fireDx / fireDistance * 4, vy: fireDy / fireDistance * 4 });
+          playEnemyShotSound();
+          raider.fireCooldown = 130 - raider.aggression * 17 + Math.floor(Math.random() * 18);
+        }
+      });
+      enemyShots.forEach(shot => { shot.x += shot.vx; shot.y += shot.vy; });
+      enemyShots = enemyShots.filter(shot => {
+        if (!banker.invulnerable && Math.abs(shot.x - banker.x) < 35 && Math.abs(shot.y - banker.y) < 17) {
+          banker.hull = Math.max(0, banker.hull - 1);
+          banker.invulnerable = 28;
+          playDamageSound();
+          impactFlashes.push({ x: banker.x, y: banker.y, age: 0 });
+          return false;
+        }
+        return shot.x > -20 && shot.x < WORLD_W + 20 && shot.y > -20 && shot.y < H + 20;
+      });
+      impactFlashes.forEach(flash => flash.age++);
+      impactFlashes = impactFlashes.filter(flash => flash.age < 10);
+      const remainingPieces = bossFort.barns.filter(section => section.alive).length;
+      const raiderHull = raiders.map((raider, index) => `R${index + 1}:${raider.alive ? raider.hull : '--'}`).join(' ');
+      const flight = banker.turn ? 'Banking' : `Flying ${banker.direction === 1 ? 'right' : 'left'}`;
+      status.textContent = !remainingPieces ? `Boss Barn destroyed! Hull: ${banker.hull} - Raiders ${raiderHull}` : `${flight} - Hull: ${banker.hull} - Raiders ${raiderHull} - ${remainingPieces} barn pieces remain`;
+    }
+
+    function render() {
+      ctx.setTransform(SCALE, 0, 0, SCALE, 0, 0);
+      const sky = ctx.createLinearGradient(0, 0, 0, GROUND); sky.addColorStop(0, '#4ba6d4'); sky.addColorStop(1, '#d4f0ec');
+      ctx.fillStyle = sky; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = '#ffffffa8'; [[110,85,42],[330,130,55],[760,74,36]].forEach(([x,y,r]) => { ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.arc(x+r*.8,y+8,r*.7,0,Math.PI*2); ctx.fill(); });
+      ctx.save(); ctx.translate(-cameraX, 0);
+      ctx.fillStyle = '#6c9b4e'; ctx.beginPath(); ctx.moveTo(cameraX,H); for (let x = Math.floor(cameraX / 10) * 10; x <= cameraX + W + 10; x += 10) ctx.lineTo(x, terrainY(x)); ctx.lineTo(cameraX + W,H); ctx.closePath(); ctx.fill();
+      bossFort.barns.forEach(drawBossFortBarn); bossFort.barns.forEach(drawBossFortTowerGun); tanks.forEach(drawTank); raiders.forEach(drawRaider); drawBomber();
+      shots.forEach(shot => { ctx.fillStyle = '#9e3831'; ctx.beginPath(); ctx.arc(shot.x, shot.y, 3, 0, Math.PI * 2); ctx.fill(); });
+      enemyShots.forEach(shot => { ctx.fillStyle = '#9e3831'; ctx.beginPath(); ctx.arc(shot.x, shot.y, 3, 0, Math.PI * 2); ctx.fill(); });
+      impactFlashes.forEach(flash => { ctx.fillStyle = `rgba(255, 199, 74, ${1 - flash.age / 10})`; ctx.beginPath(); ctx.arc(flash.x, flash.y, 5 + flash.age, 0, Math.PI * 2); ctx.fill(); });
+      ctx.restore();
+      if (paused) { ctx.fillStyle = '#102238b8'; ctx.fillRect(0, 0, W, H); ctx.fillStyle = '#fff'; ctx.font = 'bold 42px system-ui'; ctx.textAlign = 'center'; ctx.fillText('PAUSED', W / 2, H / 2); ctx.font = '18px system-ui'; ctx.fillText('Press P to resume', W / 2, H / 2 + 32); }
+    }
+
+    function loop() { if (!paused) { update(); updateCombat(); } updateEngineSound(); updateRaiderSound(); render(); requestAnimationFrame(loop); }
+    addEventListener('keydown', event => {
+      const key = event.key.toLowerCase();
+      enableAudio();
+      if (key === 'p' && !event.repeat) { paused = !paused; status.textContent = paused ? 'Paused - press P to resume' : 'Mission resumed'; return; }
+      if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'a', 'd', 'w', 's'].includes(key) || event.code === 'Space') event.preventDefault();
+      keys[event.key] = true; keys[key] = true;
+      if (event.code === 'Space') { keys.fire = true; fireMachineGun(); }
+      if (key === 'arrowleft' || key === 'a') requestDirection(-1);
+      if (key === 'arrowright' || key === 'd') requestDirection(1);
+    });
+    addEventListener('keyup', event => { keys[event.key] = false; keys[event.key.toLowerCase()] = false; if (event.code === 'Space') keys.fire = false; });
+    document.querySelector('#left').addEventListener('click', () => { enableAudio(); requestDirection(-1); });
+    document.querySelector('#right').addEventListener('click', () => { enableAudio(); requestDirection(1); });
+    ['pointerdown', 'pointerup', 'pointerleave', 'pointercancel'].forEach(type => document.querySelector('#fire').addEventListener(type, event => {
+      event.preventDefault(); keys.fire = type === 'pointerdown'; if (keys.fire) fireMachineGun();
+    }));
+    document.querySelector('#fire').addEventListener('click', fireMachineGun);
+    [['up', 'ArrowUp'], ['down', 'ArrowDown']].forEach(([id, key]) => {
+      const button = document.querySelector('#' + id);
+      ['pointerdown', 'pointerup', 'pointerleave', 'pointercancel'].forEach(type => button.addEventListener(type, event => {
+        event.preventDefault(); keys[key] = type === 'pointerdown'; if (keys[key]) enableAudio();
+      }));
+    });
+    loop();
+  </script>
+</body>
+</html>
