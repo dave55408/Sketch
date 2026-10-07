@@ -1,0 +1,3439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ostrich Fight</title>
+  <style>
+    :root {
+      --sky-top: #120a1d;
+      --sky-mid: #1b2238;
+      --sky-low: #2b1d1c;
+      --lava-a: #ff6f3a;
+      --lava-b: #b52611;
+      --rock-top: #8f8a84;
+      --rock-side: #5e5750;
+      --panel: rgba(9, 11, 22, 0.86);
+      --panel-line: rgba(255, 255, 255, 0.12);
+      --text: #f6f0e7;
+      --muted: #cec3b7;
+      --gold: #ffcf60;
+      --blue: #69aefc;
+      --danger: #ff8a7a;
+      --good: #8df2b5;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.35);
+      --play-area-max: 924px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Trebuchet MS", Arial, sans-serif;
+      background:
+        radial-gradient(circle at top, rgba(255, 217, 138, 0.12), transparent 24%),
+        linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 54%, var(--sky-low) 100%);
+    }
+
+    .shell {
+      width: min(1360px, calc(100% - 1.5rem));
+      margin: 0 auto;
+      padding: 1rem 0 1.4rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .frame {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .frame.sidebar-collapsed {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .frame.sidebar-collapsed .sidebar {
+      display: none;
+    }
+
+    .panel {
+      border-radius: 28px;
+      border: 1px solid var(--panel-line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(16px);
+    }
+
+    .sidebar {
+      padding: 1.1rem;
+      display: grid;
+      gap: 0.9rem;
+      font-family: Arial, sans-serif;
+    }
+
+    .eyebrow {
+      margin: 0;
+      color: #c5baaa;
+      letter-spacing: 0.14em;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0.15rem 0 0;
+      font-size: clamp(1.28rem, 2.5vw, 2.2rem);
+      line-height: 0.92;
+    }
+
+    .copy,
+    .controls,
+    .status-text {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.5;
+      font-size: 0.82rem;
+    }
+
+    .stats {
+      display: grid;
+      gap: 0.6rem;
+    }
+
+    .stat {
+      padding: 0.8rem 0.9rem;
+      border-radius: 18px;
+      border: 1px solid var(--panel-line);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .label {
+      display: block;
+      color: #c8beb1;
+      font-size: 0.62rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .value {
+      display: block;
+      margin-top: 0.2rem;
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .buttons {
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    .volume-control {
+      padding: 0.8rem 0.9rem;
+      border-radius: 18px;
+      border: 1px solid var(--panel-line);
+      background: rgba(255, 255, 255, 0.04);
+      display: grid;
+      gap: 0.45rem;
+    }
+
+    .volume-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--text);
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .title-volume-control .volume-row {
+      font-weight: 400;
+    }
+
+    .volume-value {
+      color: #cfc4b4;
+      font-size: 0.72rem;
+    }
+
+    .volume-slider {
+      width: 100%;
+      accent-color: #a79b8b;
+      cursor: pointer;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.8rem 1rem;
+      font: inherit;
+      font-weight: 700;
+      color: #e8e2d7;
+      background: linear-gradient(135deg, #5e6473, #444b59);
+      cursor: pointer;
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .button.alt {
+      color: #ddd9d2;
+      background: linear-gradient(135deg, #4a5262, #373e4c);
+    }
+
+    .button:hover {
+      filter: brightness(1.04);
+      transform: translateY(-1px);
+    }
+
+    .play-area {
+      width: min(100%, var(--play-area-max));
+      justify-self: stretch;
+      padding: 0.9rem;
+      display: grid;
+      gap: 0.7rem;
+    }
+
+    .frame.sidebar-collapsed .play-area {
+      justify-self: center;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.3rem;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 0 0.05rem;
+    }
+
+    .hud-lives {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      padding: 0.34rem 0.7rem;
+      color: #ffe19a;
+      background: rgba(19, 24, 36, 0.66);
+      font-size: 0.62rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .status-text {
+      min-height: 1.15em;
+      font-size: 0.58rem;
+      line-height: 1.25;
+    }
+
+    .hud-toggle {
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 999px;
+      padding: 0.34rem 0.7rem;
+      font: inherit;
+      font-size: 0.62rem;
+      font-weight: 700;
+      color: #dbe7ff;
+      background: rgba(39, 58, 92, 0.84);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .hud-toggle:hover {
+      filter: brightness(1.06);
+    }
+
+    .status-text.good {
+      color: var(--good);
+    }
+
+    .status-text.bad {
+      color: var(--danger);
+    }
+
+    .arena {
+      overflow: hidden;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: linear-gradient(180deg, #1a1831 0%, #2b2740 38%, #4f241f 100%);
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      touch-action: none;
+    }
+
+    .legend {
+      display: grid;
+      gap: 0.4rem;
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .legend strong {
+      color: var(--text);
+    }
+
+    .title-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: grid;
+      place-items: center;
+      padding: 2rem;
+      border-radius: 30px;
+      background: rgba(5, 6, 12, 0.74);
+      backdrop-filter: blur(4px);
+      pointer-events: none;
+    }
+
+    .title-overlay.hidden {
+      display: none;
+    }
+
+    .title-card {
+      width: min(100%, 900px);
+      display: grid;
+      justify-items: center;
+      gap: 1.2rem;
+      text-align: center;
+      pointer-events: auto;
+    }
+
+    .title-card img {
+      width: min(100%, 820px);
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 16px 42px rgba(0, 0, 0, 0.46));
+    }
+
+    .title-copy {
+      display: grid;
+      gap: 0.45rem;
+      width: 100%;
+      justify-items: center;
+      text-align: center;
+      transform: translateX(-30px);
+    }
+
+    .title-prompt {
+      margin: 0;
+      color: rgba(255, 240, 220, 0.96);
+      font: 700 1.5rem Arial, sans-serif;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .title-subtitle {
+      margin: 0;
+      color: rgba(255, 240, 220, 0.82);
+      font: 1rem Arial, sans-serif;
+    }
+
+    .title-volume-control {
+      width: min(100%, 360px);
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      transform: translateX(-30px);
+    }
+
+    @media (max-width: 980px) {
+      .frame {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="frame" id="frame">
+      <aside class="panel sidebar">
+        <div>
+          <p class="eyebrow">Arcade Platform Joust</p>
+          <h1>Ostrich Fight</h1>
+          <p class="copy">Guide a yellow knight riding a flying ostrich across a side-view island above lava. Win lance clashes, collect fallen eggs for points, survive the Lava Troll, and clear ever-harder enemy waves.</p>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="label">Wave</span>
+            <span class="value" id="wave">1</span>
+          </div>
+          <div class="stat">
+            <span class="label">Score</span>
+            <span class="value" id="score">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Player One</span>
+            <span class="value" id="lives">3 Lives</span>
+          </div>
+          <div class="stat">
+            <span class="label">Player Two</span>
+            <span class="value" id="p2-status">Waiting</span>
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button class="button" id="restart-btn" type="button">Restart Quest</button>
+          <button class="button alt" id="join-btn" type="button">Join Player Two</button>
+          <button class="button alt" id="duel-btn" type="button">Friendly Clash: Off</button>
+          <button class="button alt" id="title-btn" type="button">Title Screen</button>
+        </div>
+
+        <div class="volume-control">
+          <div class="volume-row">
+            <span>Game Volume</span>
+            <span class="volume-value" id="volume-value">100%</span>
+          </div>
+          <input class="volume-slider" id="volume-slider" type="range" min="0" max="100" value="100" aria-label="Game volume">
+        </div>
+
+          <p class="controls"><strong>Player 1:</strong> <code>W A S D</code> move, <code>G</code> flap.<br><strong>Player 2:</strong> <code>Arrow Keys</code> move, <code>Right Ctrl</code> flap.<br><code>1</code> adds a life to player one. <code>2</code> joins player two or adds a life to player two. <code>T</code> toggles friendly clashes. <code>P</code> pauses. <code>R</code> restarts.</p>
+
+        <div class="legend">
+          <div><strong>Bounder</strong>: bronze buzzard knight, low value, erratic.</div>
+          <div><strong>Hunter</strong>: crimson buzzard knight, sharper tracking.</div>
+          <div><strong>Shadow Lord</strong>: held back for now while the lower waves are tuned.</div>
+          <div><strong>Lava Troll</strong>: grabs anyone flying too low over lava.</div>
+        </div>
+      </aside>
+
+      <section class="panel play-area">
+        <div class="hud">
+          <button class="hud-toggle" id="panel-toggle" type="button" tabindex="-1">Hide Panel</button>
+          <div class="hud-lives" id="hud-lives">P1: 3 Lives</div>
+          <div class="hud-lives" id="hud-p2-status">P2: Waiting</div>
+          <p class="status-text" id="status">Ride into wave 1 and win your side-view jousts by striking from the higher lance.</p>
+        </div>
+        <div class="arena">
+          <canvas id="game" width="1440" height="1440" aria-label="Ostrich Fight game area" tabindex="0"></canvas>
+        </div>
+      </section>
+
+      <div class="title-overlay" id="title-overlay" aria-hidden="true">
+        <div class="title-card">
+          <img id="title-overlay-image" src="./OstrichFightTitle.png" alt="Ostrich Fight title art">
+          <div class="title-copy">
+            <p class="title-prompt">Press any key to begin</p>
+          </div>
+          <div class="volume-control title-volume-control">
+            <div class="volume-row">
+              <span>Title and Game Volume</span>
+              <span class="volume-value" id="title-volume-value">0%</span>
+            </div>
+            <input class="volume-slider" id="title-volume-slider" type="range" min="0" max="100" value="0" aria-label="Title screen volume">
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const waveEl = document.getElementById("wave");
+    const scoreEl = document.getElementById("score");
+    const livesEl = document.getElementById("lives");
+    const hudLivesEl = document.getElementById("hud-lives");
+    const hudP2StatusEl = document.getElementById("hud-p2-status");
+    const p2StatusEl = document.getElementById("p2-status");
+    const statusEl = document.getElementById("status");
+    const frameEl = document.getElementById("frame");
+    const restartBtn = document.getElementById("restart-btn");
+    const titleBtn = document.getElementById("title-btn");
+    const joinBtn = document.getElementById("join-btn");
+    const duelBtn = document.getElementById("duel-btn");
+    const panelToggleBtn = document.getElementById("panel-toggle");
+    const volumeSlider = document.getElementById("volume-slider");
+    const volumeValueEl = document.getElementById("volume-value");
+    const titleVolumeSlider = document.getElementById("title-volume-slider");
+    const titleVolumeValueEl = document.getElementById("title-volume-value");
+    const titleOverlayEl = document.getElementById("title-overlay");
+    const flapSound = new Audio("../sounds/wingflap.mp3");
+    const boomSound = new Audio("../sounds/boom.mp3");
+    const impactSound = new Audio("../sounds/impact.mp3");
+    const deathSound = new Audio("../sounds/death.mp3");
+    const platformTouchSound = new Audio("../sounds/walking-on-wood_fast.mp3");
+    const transporterSound = new Audio("../sounds/transporter.mp3");
+    const titleMusic = new Audio("../sounds/celtic.mp3");
+    const gameplayMusic = new Audio("../sounds/celtic.mp3");
+    const jellybounceSound = new Audio("../sounds/jellybounce.mp3");
+    const metalClangSound = new Audio("../sounds/clang.mp3");
+    const gulpSound = new Audio("../sounds/gulp.mp3");
+    const squakSound = new Audio("../sounds/squak.mp3");
+    const pterodactylSpawnSound = new Audio("../sounds/cinematic-hit-425569.mp3");
+    const rockTexture = new Image();
+    const titleImage = new Image();
+    const heroBirdSpriteUp = new Image();
+    const heroBirdSpriteMed = new Image();
+    const heroBirdSpriteDown = new Image();
+    let masterVolume = 1;
+    flapSound.preload = "auto";
+    flapSound.baseVolume = 0.45;
+    boomSound.preload = "auto";
+    boomSound.baseVolume = 0.55;
+    impactSound.preload = "auto";
+    impactSound.baseVolume = 0.55;
+    deathSound.preload = "auto";
+    deathSound.baseVolume = 0.55;
+    platformTouchSound.preload = "auto";
+    platformTouchSound.baseVolume = 0.35;
+    platformTouchSound.loop = true;
+    transporterSound.preload = "auto";
+    transporterSound.baseVolume = 0.1925;
+    transporterSound.loop = true;
+    titleMusic.preload = "auto";
+    titleMusic.baseVolume = 0.238;
+    titleMusic.loop = true;
+    titleMusic.volumeFactor = 1;
+    gameplayMusic.preload = "auto";
+    gameplayMusic.baseVolume = 0;
+    gameplayMusic.loop = true;
+    jellybounceSound.preload = "auto";
+    jellybounceSound.baseVolume = 0.45;
+    metalClangSound.preload = "auto";
+    metalClangSound.baseVolume = 0.5;
+    gulpSound.preload = "auto";
+    gulpSound.baseVolume = 0.5;
+    squakSound.preload = "auto";
+    squakSound.baseVolume = 0.5;
+    pterodactylSpawnSound.preload = "auto";
+    pterodactylSpawnSound.baseVolume = 0.5;
+    rockTexture.src = "./rock.jpg";
+    titleImage.src = "./OstrichFightTitle.png";
+    heroBirdSpriteUp.src = "./bird/orange_up.png";
+    heroBirdSpriteMed.src = "./bird/orange_med.png";
+    heroBirdSpriteDown.src = "./bird/orange_down.png";
+    const ALL_SOUNDS = [
+      flapSound,
+      boomSound,
+      impactSound,
+      deathSound,
+      platformTouchSound,
+      transporterSound,
+      titleMusic,
+      gameplayMusic,
+      jellybounceSound,
+      metalClangSound,
+      gulpSound,
+      squakSound,
+      pterodactylSpawnSound
+    ];
+
+    const keys = new Set();
+    const justPressedKeys = new Set();
+    let lastFrame = 0;
+    let state;
+    let titleScreenActive = true;
+    let titleFadeActive = false;
+    let titleTimer = 0;
+    let titleFadeTimer = 0;
+    let titleMusicFadeActive = false;
+    let titleMusicFadeTimer = 0;
+    let titleMusicAttempted = false;
+    const titleStars = createStars();
+
+    const WORLD = {
+      width: 1440,
+      height: 1440,
+      floorY: 1240,
+      lavaY: 1296,
+      lavaDangerY: 1224,
+      island: { x: 220, w: 1000, y: 1240 },
+      leftWall: 36,
+      rightWall: 1404,
+      offscreenMargin: 240
+    };
+
+    const GRAVITY = 1100;
+    const PLAYER_FLAP = -310;
+    const CHARACTER_SCALE = 0.9;
+    const PLAYER_RESPAWN_DELAY = 2;
+    const PLAYER_DEATH_FADE_DURATION = 0.35;
+    const EGG_REHATCH_DELAY = 6;
+    const EGG_RESCUE_DURATION = 1.275;
+    const EGG_KNIGHT_EMERGE_DURATION = 0.42;
+    const EGG_KNIGHT_SOLO_DURATION = 0.28;
+    const LAVA_TROLL_GRAB_BUFFER = 28;
+    const LAVA_TROLL_ESCAPE_WINDOW = 1;
+    const LAVA_TROLL_ESCAPE_FLAPS = 4;
+    const LAVA_TROLL_ESCAPE_GRACE = 0.6;
+    const HERO_LANDING_BOUNCE_MIN_FALL = 150;
+    const HERO_LANDING_BOUNCE_MIN_IMPACT = 260;
+    const HERO_LANDING_BOUNCE_VELOCITY = 180;
+    const TITLE_FADE_DURATION = 0.45;
+    const TITLE_MUSIC_FADE_OUT_DURATION = 3.2;
+
+    const ENEMY_TYPES = {
+      bounder: { name: "Bounder", color: "#d28f56", mountColor: "#5b4740", value: 250, speed: 196, flap: -310, preferredAltitude: 110 },
+      hunter: { name: "Hunter", color: "#d14b4b", mountColor: "#46363f", value: 500, speed: 202, flap: -332, preferredAltitude: 135 },
+      shadow: { name: "Shadow Lord", color: "#8a61d9", mountColor: "#33293c", value: 900, speed: 292, flap: -338, preferredAltitude: 160 }
+    };
+
+    const PLATFORM_LAYOUT = [
+      { x: 0, y: 173, w: 420 },
+      { x: 1020, y: 173, w: 420 },
+      { x: 280, y: 426, w: 240 },
+      { x: 920, y: 426, w: 240 },
+      { x: 420, y: 680, w: 600 },
+      { x: 0, y: 933, w: 540 },
+      { x: 900, y: 933, w: 540 }
+    ];
+    const PLATFORM_HEIGHT_LEVELS = [...new Set(PLATFORM_LAYOUT.map((platform) => platform.y))].sort((a, b) => a - b);
+    const GAME_HEIGHT_BREAKS = [
+      (PLATFORM_HEIGHT_LEVELS[0] + PLATFORM_HEIGHT_LEVELS[1]) * 0.5,
+      (PLATFORM_HEIGHT_LEVELS[1] + PLATFORM_HEIGHT_LEVELS[2]) * 0.5,
+      (PLATFORM_HEIGHT_LEVELS[2] + PLATFORM_HEIGHT_LEVELS[3]) * 0.5,
+      (PLATFORM_HEIGHT_LEVELS[3] + WORLD.island.y) * 0.5
+    ];
+
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function getNextTougherEnemyType(typeKey) {
+      if (typeKey === "bounder") {
+        return "hunter";
+      }
+      if (typeKey === "hunter") {
+        return "shadow";
+      }
+      return "shadow";
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function lerp(a, b, t) {
+      return a + (b - a) * t;
+    }
+
+    function getHeroBirdSprite(character) {
+      if (character.onGround && Math.abs(character.vx) < 18 && Math.abs(character.vy) < 40) {
+        return heroBirdSpriteMed;
+      }
+      if (character.onGround && Math.abs(character.vx) >= 18) {
+        return heroBirdSpriteMed;
+      }
+      if (character.vy < -140) {
+        return heroBirdSpriteUp;
+      }
+      if (character.vy > 140) {
+        return heroBirdSpriteDown;
+      }
+      const cycle = Math.floor((state.waveTimer * (character.onGround ? 6 : 9)) % 3);
+      return [heroBirdSpriteUp, heroBirdSpriteMed, heroBirdSpriteDown][cycle];
+    }
+
+    function formatWaveTimer(seconds) {
+      const totalSeconds = Math.max(0, Math.floor(seconds));
+      const minutes = Math.floor(totalSeconds / 60);
+      const remainder = String(totalSeconds % 60).padStart(2, "0");
+      return `${minutes}:${remainder}`;
+    }
+
+    function setStatus(text, kind = "") {
+      statusEl.textContent = text;
+      statusEl.className = `status-text${kind ? ` ${kind}` : ""}`;
+    }
+
+    function getSoundVolume(sound) {
+      return (sound.baseVolume ?? 1) * (sound.volumeFactor ?? 1) * masterVolume;
+    }
+
+    function applyMasterVolume() {
+      for (const sound of ALL_SOUNDS) {
+        sound.volume = getSoundVolume(sound);
+      }
+    }
+
+    function updateVolumeUi() {
+      const percent = Math.round(masterVolume * 100);
+      volumeSlider.value = String(percent);
+      volumeValueEl.textContent = `${percent}%`;
+      if (titleVolumeSlider) {
+        titleVolumeSlider.value = String(percent);
+      }
+      if (titleVolumeValueEl) {
+        titleVolumeValueEl.textContent = `${percent}%`;
+      }
+    }
+
+    function setMasterVolume(nextVolume) {
+      masterVolume = clamp(nextVolume, 0, 1);
+      applyMasterVolume();
+      updateVolumeUi();
+    }
+
+    function resetTitleMusicFade() {
+      titleMusic.volumeFactor = 1;
+      applyMasterVolume();
+    }
+
+    function startTitleMusicFadeOut() {
+      titleMusicFadeActive = !titleMusic.paused;
+      titleMusicFadeTimer = 0;
+      if (!titleMusicFadeActive) {
+        resetTitleMusicFade();
+      }
+    }
+
+    function updateTitleMusicFade(dt) {
+      if (!titleMusicFadeActive) {
+        return;
+      }
+      titleMusicFadeTimer = Math.min(TITLE_MUSIC_FADE_OUT_DURATION, titleMusicFadeTimer + dt);
+      titleMusic.volumeFactor = clamp(1 - titleMusicFadeTimer / TITLE_MUSIC_FADE_OUT_DURATION, 0, 1);
+      titleMusic.volume = getSoundVolume(titleMusic);
+      if (titleMusicFadeTimer >= TITLE_MUSIC_FADE_OUT_DURATION) {
+        titleMusicFadeActive = false;
+        setLoopingSound(titleMusic, false);
+        resetTitleMusicFade();
+      }
+    }
+
+    function releaseTitleSliderFocus() {
+      if (document.activeElement === titleVolumeSlider) {
+        titleVolumeSlider.blur();
+      }
+      canvas.focus();
+    }
+
+    function playSound(sound, options = {}) {
+      const instance = sound.cloneNode();
+      instance.baseVolume = sound.baseVolume ?? 1;
+      instance.volume = getSoundVolume(instance);
+      if (Number.isFinite(options.startTime) && options.startTime > 0) {
+        const applyStartTime = () => {
+          try {
+            instance.currentTime = options.startTime;
+          } catch (_) {}
+        };
+        instance.addEventListener("loadedmetadata", applyStartTime, { once: true });
+        if (instance.readyState >= 1) {
+          applyStartTime();
+        }
+      }
+      instance.play().catch(() => {});
+    }
+
+    function playTimedLoopSound(sound, durationMs) {
+      const instance = sound.cloneNode();
+      instance.baseVolume = sound.baseVolume ?? 1;
+      instance.volume = getSoundVolume(instance);
+      instance.loop = true;
+      instance.play().catch(() => {});
+      setTimeout(() => {
+        instance.pause();
+        instance.currentTime = 0;
+      }, durationMs);
+    }
+
+    function setLoopingSound(sound, shouldPlay) {
+      if (shouldPlay) {
+        sound.volume = getSoundVolume(sound);
+        if (sound.paused) {
+          sound.play().catch(() => {});
+        }
+      } else if (!sound.paused) {
+        sound.pause();
+        sound.currentTime = 0;
+      }
+    }
+
+    function tryStartTitleMusic() {
+      if (!titleScreenActive || !titleMusic.paused) {
+        return;
+      }
+      titleMusicAttempted = true;
+      resetTitleMusicFade();
+      titleMusic.volume = getSoundVolume(titleMusic);
+      const playAttempt = titleMusic.play();
+      if (playAttempt && typeof playAttempt.then === "function") {
+        playAttempt.catch(() => {});
+      }
+    }
+
+    function playPterodactylExitFlaps(pterodactyl) {
+      const flapOffset = pterodactyl?.flapSoundOffset || 0;
+      playSound(flapSound, { startTime: flapOffset });
+    }
+
+    function fillRockShape(drawPath, fallbackFill) {
+      ctx.save();
+      drawPath();
+      if (rockTexture.complete && rockTexture.naturalWidth > 0) {
+        ctx.clip();
+        const pattern = ctx.createPattern(rockTexture, "repeat");
+        if (pattern) {
+          if (typeof pattern.setTransform === "function") {
+            pattern.setTransform(new DOMMatrix().scale(0.5));
+          }
+          ctx.fillStyle = pattern;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      } else {
+        ctx.fillStyle = fallbackFill;
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function createPlatforms(wave = 1) {
+      return PLATFORM_LAYOUT
+        .map((platform, index) => ({ id: index, ...platform }));
+    }
+
+    function getPlatformGameHeight(platformY) {
+      const levelIndex = PLATFORM_HEIGHT_LEVELS.indexOf(platformY);
+      return levelIndex === -1 ? 1 : PLATFORM_HEIGHT_LEVELS.length - levelIndex + 1;
+    }
+
+    function getPlatformYForGameHeight(gameHeight) {
+      if (gameHeight < 2) {
+        return null;
+      }
+      const levelIndex = PLATFORM_HEIGHT_LEVELS.length - gameHeight + 1;
+      return PLATFORM_HEIGHT_LEVELS[levelIndex] ?? null;
+    }
+
+    function createEnergyPads(platforms) {
+      return [
+        ...platforms.map((platform, index) => ({
+          id: `pad-${index}`,
+          x: platform.x + platform.w * 0.5,
+          y: platform.y
+        })),
+        {
+          id: "pad-island",
+          x: WORLD.island.x + WORLD.island.w * 0.5,
+          y: WORLD.island.y
+        }
+      ];
+    }
+
+    function createSpawnPads(platforms) {
+      const energyPads = createEnergyPads(platforms);
+      return [
+        energyPads[0],
+        energyPads[1] || { x: 330, y: WORLD.floorY },
+        energyPads[2] || { x: 1110, y: WORLD.floorY },
+        { x: 330, y: WORLD.floorY },
+        { x: 920, y: WORLD.floorY },
+        { x: 680, y: WORLD.floorY },
+        { x: 1040, y: WORLD.floorY }
+      ];
+    }
+
+    function createPlayer(id, name, knightColor, mountColor, controls, spawn) {
+      return {
+        kind: "player",
+        id,
+        name,
+        active: id === 1,
+        knightColor,
+        mountColor,
+        mountName: id === 1 ? "Ostrich" : "Stork",
+        x: spawn.x,
+        y: spawn.y - 30,
+        vx: 0,
+        vy: 0,
+        width: 74 * CHARACTER_SCALE,
+        height: 60 * CHARACTER_SCALE,
+        radius: 30 * CHARACTER_SCALE,
+        drawScale: CHARACTER_SCALE,
+        lanceRaise: 0,
+        facing: id === 1 ? 1 : -1,
+        lives: 3,
+        score: 0,
+        invuln: 0,
+        respawnTimer: 0,
+        deathFadeTimer: 0,
+        grabbedTimer: 0,
+        grabbed: false,
+        trollEscapeFlaps: 0,
+        lavaTrollGraceTimer: 0,
+        alive: true,
+        onGround: false,
+        touchingPlatform: false,
+        gameHeight: 1,
+        warpFadeTimer: 0,
+        flapCooldown: 0,
+        flapSoundOffset: id === 1 ? 0.02 : 0.09,
+        tieTimer: 0,
+        airbornePeakY: spawn.y - 30,
+        landingBounceReady: true,
+        controls
+      };
+    }
+
+    function beginGameFromTitle() {
+      if (!titleScreenActive) {
+        return;
+      }
+      titleScreenActive = false;
+      titleFadeActive = false;
+      titleFadeTimer = 0;
+      keys.clear();
+      justPressedKeys.clear();
+      updateTitleOverlay(0, false);
+      startGame();
+    }
+
+    function returnToTitleScreen() {
+      titleScreenActive = true;
+      titleFadeActive = false;
+      titleFadeTimer = 0;
+      titleTimer = 0;
+      titleMusicFadeActive = false;
+      titleMusicFadeTimer = 0;
+      titleMusicAttempted = false;
+      keys.clear();
+      justPressedKeys.clear();
+      setLoopingSound(platformTouchSound, false);
+      setLoopingSound(transporterSound, false);
+      setLoopingSound(titleMusic, false);
+      setLoopingSound(gameplayMusic, false);
+      resetTitleMusicFade();
+      updateTitleOverlay(1, true);
+      tryStartTitleMusic();
+      canvas.focus();
+    }
+
+    function updateTitleOverlay(opacity, visible) {
+      if (!titleOverlayEl) {
+        return;
+      }
+      titleOverlayEl.classList.toggle("hidden", !visible);
+      titleOverlayEl.style.opacity = String(clamp(opacity, 0, 1));
+    }
+
+    function createEnemy(typeKey, spawn, wave, serial, options = {}) {
+      const type = ENEMY_TYPES[typeKey];
+      const exactSpawn = options.exactSpawn || false;
+      const spawnX = exactSpawn ? spawn.x : spawn.x + randomBetween(-35, 35);
+      const spawnY = exactSpawn ? spawn.y : spawn.y - 35 - randomBetween(40, 130);
+      return {
+        kind: "enemy",
+        typeKey,
+        type,
+        id: `enemy-${serial}`,
+        x: spawnX,
+        y: spawnY,
+        vx: randomBetween(-35, 35),
+        vy: randomBetween(-10, 10),
+        width: 72 * CHARACTER_SCALE,
+        height: 58 * CHARACTER_SCALE,
+        radius: 30 * CHARACTER_SCALE,
+        drawScale: CHARACTER_SCALE,
+        lanceRaise: randomBetween(0, 8),
+        facing: Math.random() < 0.5 ? -1 : 1,
+        flapCooldown: randomBetween(0.1, 0.45),
+        flapInterval: randomBetween(0.24, 0.42),
+        flapSoundOffset: randomBetween(0.035, 0.14),
+        decisionTimer: randomBetween(0.25, 0.7),
+        orbitPhase: randomBetween(0, Math.PI * 2),
+        attackOffsetX: randomBetween(-36, 36),
+        attackOffsetY: randomBetween(-26, 18),
+        climbBias: randomBetween(-18, 22),
+        surgeBias: randomBetween(0.85, 1.2),
+        steeringBias: randomBetween(3.1, 4.3),
+        verticalSmoothing: randomBetween(1.9, 2.7),
+        wanderPhase: randomBetween(0, Math.PI * 2),
+        wanderSpeed: randomBetween(0.8, 1.5),
+        wanderX: randomBetween(18, 54),
+        wanderY: randomBetween(22, 68),
+        touchingPlatform: false,
+        gameHeight: 1,
+        tieTimer: 0,
+        groundRunTimer: 0,
+        stuckTimer: 0,
+        stuckDirection: Math.random() < 0.5 ? -1 : 1,
+        stuckGameHeight: 1,
+        escapingStuck: false,
+        lastX: spawnX,
+        wave,
+        value: type.value,
+        alive: true
+      };
+    }
+
+    function createPterodactyl(players) {
+      const target = getNearestActivePlayer({ x: WORLD.width * 0.5, y: 220 }, players);
+      return {
+        kind: "pterodactyl",
+        id: "pterodactyl",
+        type: { speed: Math.round(ENEMY_TYPES.hunter.speed * 0.5), flap: -318 },
+        x: target && target.x > WORLD.width * 0.5 ? 0 : WORLD.width,
+        y: randomBetween(160, 280),
+        vx: 0,
+        vy: 0,
+        width: 104 * CHARACTER_SCALE,
+        height: 46 * CHARACTER_SCALE,
+        radius: 36 * CHARACTER_SCALE,
+        drawScale: CHARACTER_SCALE,
+        lanceRaise: 16,
+        facing: target && target.x > WORLD.width * 0.5 ? 1 : -1,
+        touchingPlatform: false,
+        gameHeight: 5,
+        flapCooldown: 0,
+        flapInterval: randomBetween(0.24, 0.42),
+        flapSoundOffset: randomBetween(0.05, 0.16),
+        steeringBias: randomBetween(3.8, 5.6),
+        verticalSmoothing: randomBetween(1.6, 2.3),
+        speedMultiplier: 1,
+        attackCooldown: 6,
+        attackTimer: 0,
+        exitFlapTimer: 0,
+        exitFlapInterval: 0.42,
+        exiting: false,
+        exitDirection: 0,
+        tieTimer: 0,
+        groundRunTimer: 0,
+        stuckDirection: Math.random() < 0.5 ? -1 : 1,
+        stuckGameHeight: 5,
+        escapingStuck: false,
+        value: 1500,
+        alive: true
+      };
+    }
+
+    function createEgg(enemy, spawnX = enemy.x, spawnY = enemy.y) {
+      return {
+        kind: "egg",
+        typeKey: enemy.typeKey,
+        x: spawnX,
+        y: spawnY,
+        vx: enemy.vx,
+        vy: Math.max(enemy.vy, 20),
+        radius: 18,
+        maxGameHeight: enemy.gameHeight || 1,
+        value: Math.floor(enemy.type.value * 0.45),
+        landTimer: 0,
+        hatching: false,
+        hatchTimer: 0,
+        inLava: false,
+        lavaSink: 0,
+        riderColor: enemy.type.color,
+        riderFacing: enemy.facing || 1,
+        rescueBird: null
+      };
+    }
+
+    function beginEggRescue(egg) {
+      const tougherTypeKey = getNextTougherEnemyType(egg.typeKey);
+      const type = ENEMY_TYPES[tougherTypeKey] || ENEMY_TYPES.bounder;
+      const entersFromLeft = egg.x < WORLD.width * 0.5;
+      egg.hatching = true;
+      egg.hatchTimer = EGG_RESCUE_DURATION;
+      egg.riderColor = type.color;
+      egg.rescueBird = {
+        x: entersFromLeft ? -150 : WORLD.width + 150,
+        y: clamp(egg.y - 220, 150, WORLD.lavaDangerY - 190),
+        vx: entersFromLeft ? 260 : -260,
+        vy: 0,
+        pickupDirection: entersFromLeft ? 1 : -1,
+        facing: entersFromLeft ? 1 : -1,
+        width: 72 * CHARACTER_SCALE,
+        height: 58 * CHARACTER_SCALE,
+        drawScale: CHARACTER_SCALE,
+        onGround: false,
+        warpFadeTimer: 0,
+        lanceRaise: 8,
+        alive: true,
+        riderColor: type.color,
+        mountColor: type.mountColor
+      };
+    }
+
+    function createStars(count = 44) {
+      const stars = [];
+      for (let index = 0; index < count; index += 1) {
+        stars.push({
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height * 0.34,
+          radius: randomBetween(0.8, 2.2),
+          alpha: randomBetween(0.28, 0.72)
+        });
+      }
+      return stars;
+    }
+
+    function createState() {
+      const platforms = createPlatforms(1);
+      const energyPads = createEnergyPads(platforms);
+      const spawnPads = createSpawnPads(platforms);
+      const player1 = createPlayer(1, "Yellow Knight", "#d8b43a", "#9b6f20", {
+        left: "KeyA",
+        right: "KeyD",
+        flap: "KeyG"
+      }, spawnPads[0]);
+      const player2 = createPlayer(2, "Blue Knight", "#61a8ff", "#cfdff6", {
+        left: "ArrowLeft",
+        right: "ArrowRight",
+        flap: "ControlRight"
+      }, spawnPads[1]);
+
+      return {
+        platforms,
+        energyPads,
+        spawnPads,
+        players: [player1, player2],
+        enemies: [],
+        eggs: [],
+        pterodactyls: [],
+        particles: [],
+        stars: createStars(),
+        wave: 1,
+        score: 0,
+        friendlyFire: true,
+        waveTimer: 0,
+        waveClearTimer: 0,
+        pterodactylSpawns: 0,
+        serial: 0,
+        over: false,
+        paused: false,
+        awaitingStart: true,
+        introTimer: 0,
+        introActive: true,
+        introSoundPlayed: false,
+        lavaTrollRetreat: null
+      };
+    }
+
+    function beginLavaTrollRetreat(character) {
+      if (!state || !character) {
+        return;
+      }
+      state.lavaTrollRetreat = {
+        x: character.x,
+        y: Math.max(character.y + 28, WORLD.lavaY - 10),
+        sinkY: WORLD.lavaY + 92
+      };
+    }
+
+    function startGame() {
+      titleScreenActive = false;
+      state = createState();
+      startWave(1);
+      updateHud();
+      startTitleMusicFadeOut();
+      setLoopingSound(gameplayMusic, true);
+      setLoopingSound(transporterSound, true);
+      state.introSoundPlayed = true;
+      setStatus("Charging in. The wave will begin as soon as the transporter locks in.", "good");
+      canvas.focus();
+    }
+
+    function startWave(wave) {
+      state.wave = wave;
+      state.platforms = createPlatforms(wave);
+      state.energyPads = createEnergyPads(state.platforms);
+      state.spawnPads = createSpawnPads(state.platforms);
+      state.waveTimer = 0;
+      state.waveClearTimer = 0;
+      state.awaitingStart = true;
+      state.introTimer = 0;
+      state.introActive = true;
+      state.pterodactyls = [];
+      state.pterodactylSpawns = 0;
+      state.eggs = [];
+      state.enemies = [];
+      const enemyCount = Math.min(3 + wave, 10);
+
+      for (let index = 0; index < enemyCount; index += 1) {
+        const pad = state.spawnPads[(index + wave + 2) % state.spawnPads.length];
+        const typeKey = wave >= 3 && index % 2 === 1 ? "hunter" : "bounder";
+        state.serial += 1;
+        state.enemies.push(createEnemy(typeKey, pad, wave, state.serial));
+      }
+
+      for (const [index, player] of state.players.entries()) {
+        if (!player.active || player.lives <= 0) {
+          continue;
+        }
+        resetCharacterToPad(player, getRandomEnergyPad());
+        player.invuln = 1.2;
+      }
+
+      updateHud();
+    }
+
+    function updateHud() {
+      waveEl.textContent = String(state.wave);
+      scoreEl.textContent = String(state.score);
+      livesEl.textContent = `${state.players[0].lives} Lives`;
+      hudLivesEl.textContent = `P1: ${state.players[0].lives} Lives`;
+      const player2 = state.players[1];
+      if (!player2.active) {
+        p2StatusEl.textContent = "Waiting";
+        hudP2StatusEl.textContent = "P2: Waiting";
+      } else if (player2.lives > 0) {
+        p2StatusEl.textContent = `${player2.lives} Lives`;
+        hudP2StatusEl.textContent = `P2: ${player2.lives} Lives`;
+      } else {
+        p2StatusEl.textContent = "Down";
+        hudP2StatusEl.textContent = "P2: Down";
+      }
+      duelBtn.textContent = `Friendly Clash: ${state.friendlyFire ? "On" : "Off"}`;
+      joinBtn.textContent = state.players[1].active ? "Player Two Joined" : "Join Player Two";
+      joinBtn.disabled = state.players[1].active;
+    }
+
+    function toggleFriendlyFire() {
+      state.friendlyFire = !state.friendlyFire;
+      updateHud();
+    }
+
+    function toggleSidebar() {
+      frameEl.classList.toggle("sidebar-collapsed");
+      panelToggleBtn.textContent = frameEl.classList.contains("sidebar-collapsed") ? "Show Panel" : "Hide Panel";
+      canvas.focus();
+    }
+
+    function togglePause() {
+      if (!state || state.over) {
+        return;
+      }
+      state.paused = !state.paused;
+      setStatus(state.paused ? "Quest paused." : "Quest resumed.", state.paused ? "" : "good");
+    }
+
+    function beginWaveGameplay() {
+      if (!state || !state.awaitingStart) {
+        return;
+      }
+      state.awaitingStart = false;
+      state.introTimer = 4;
+      setLoopingSound(transporterSound, false);
+      setStatus(`Wave ${state.wave} begins. Strike from the higher bird.`, "good");
+    }
+
+    function joinPlayerTwo() {
+      const player2 = state.players[1];
+      if (player2.active) {
+        return;
+      }
+      player2.active = true;
+      player2.alive = true;
+      player2.lives = 3;
+      resetCharacterToPad(player2, getRandomEnergyPad());
+      player2.invuln = 1.2;
+      updateHud();
+      setStatus("Blue knight joins the side-view charge.", "good");
+    }
+
+    function resetCharacterToPad(character, pad) {
+      character.x = pad.x;
+      character.y = pad.y - character.height * 0.5;
+      character.vx = 0;
+      character.vy = 0;
+      character.lanceRaise = 0;
+      character.facing = character.id === 2 ? -1 : 1;
+      character.grabbed = false;
+      character.grabbedTimer = 0;
+      character.trollEscapeFlaps = 0;
+      character.lavaTrollGraceTimer = 0;
+      character.respawnTimer = 0;
+      character.deathFadeTimer = 0;
+      character.alive = true;
+      character.onGround = true;
+      character.touchingPlatform = false;
+      updateGameHeight(character);
+      character.warpFadeTimer = 0;
+      character.flapCooldown = 0;
+      character.tieTimer = 0;
+      character.airbornePeakY = character.y;
+      character.landingBounceReady = true;
+    }
+
+    function getNearestActivePlayer(from, players = state.players) {
+      let best = null;
+      let bestDist = Infinity;
+      for (const player of players) {
+        if (!player.active || !player.alive || player.lives <= 0 || player.respawnTimer > 0 || player.warpFadeTimer > 0) {
+          continue;
+        }
+        const dx = wrappedDeltaX(from.x, player.x);
+        const dy = player.y - from.y;
+        const dist = dx * dx + dy * dy;
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = player;
+        }
+      }
+      return best;
+    }
+
+    function getPrimaryTarget(from) {
+      return getNearestActivePlayer(from);
+    }
+
+    function getSurfaces() {
+      return [
+        { id: "island", x: WORLD.island.x, y: WORLD.island.y, w: WORLD.island.w, type: "island" },
+        ...state.platforms.map((platform) => ({ ...platform, type: "platform" }))
+      ];
+    }
+
+    function isOverLava(x) {
+      return x < WORLD.island.x || x > WORLD.island.x + WORLD.island.w;
+    }
+
+    function isInsideVisibleArena(x) {
+      return x >= 0 && x <= WORLD.width;
+    }
+
+    function wrappedDeltaX(fromX, toX) {
+      let delta = toX - fromX;
+      if (delta > WORLD.width * 0.5) {
+        delta -= WORLD.width;
+      } else if (delta < -WORLD.width * 0.5) {
+        delta += WORLD.width;
+      }
+      return delta;
+    }
+
+    function getStandingPlatform(entity, sampleX = entity.x) {
+      const bottom = entity.y + entity.height * 0.5;
+      if (
+        sampleX >= WORLD.island.x &&
+        sampleX <= WORLD.island.x + WORLD.island.w &&
+        Math.abs(bottom - WORLD.island.y) < 6
+      ) {
+        return { id: "island", x: WORLD.island.x, y: WORLD.island.y, w: WORLD.island.w, type: "island" };
+      }
+      return state.platforms.find((platform) =>
+        sampleX >= platform.x &&
+        sampleX <= platform.x + platform.w &&
+        Math.abs(bottom - platform.y) < 6
+      ) || null;
+    }
+
+    function getBlockingPlatformAbove(entity, sampleX = entity.x) {
+      const top = entity.y - entity.height * 0.5;
+      return state.platforms.find((platform) =>
+        sampleX >= platform.x &&
+        sampleX <= platform.x + platform.w &&
+        platform.y >= top - 48 &&
+        platform.y <= top + 72
+      ) || null;
+    }
+
+    function hasPlatformBetweenEntityAndLava(entity, sampleX = entity.x) {
+      const bottom = entity.y + entity.height * 0.5;
+      return state.platforms.some((platform) =>
+        sampleX >= platform.x &&
+        sampleX <= platform.x + platform.w &&
+        platform.y > bottom &&
+        platform.y < WORLD.lavaDangerY
+      );
+    }
+
+    function canMoveVerticalDistance(entity, targetY, sampleX = entity.x, distance = WORLD.height * 0.2) {
+      const verticalGap = targetY - entity.y;
+      const standingPlatform = getStandingPlatform(entity, sampleX);
+      const top = entity.y - entity.height * 0.5;
+      const requiredTop = top - distance;
+      const blockingCeiling = state.platforms.some((platform) =>
+        sampleX >= platform.x &&
+        sampleX <= platform.x + platform.w &&
+        platform.y >= requiredTop &&
+        platform.y <= top + 72
+      );
+
+      if (verticalGap < -20) {
+        return !blockingCeiling;
+      }
+      if (verticalGap > 20) {
+        return !standingPlatform;
+      }
+      return true;
+    }
+
+    function getSurfaceBottom(surface) {
+      return surface.type === "island" ? canvas.height + 200 : surface.y + 28;
+    }
+
+    function shouldHeroLandingBounce(entity, surface, previousVY) {
+      if (entity.kind !== "player" || !entity.landingBounceReady) {
+        return false;
+      }
+      if (surface.type !== "platform" && surface.type !== "island") {
+        return false;
+      }
+      const airbornePeakY = entity.airbornePeakY ?? entity.y;
+      const fallDistance = surface.y - airbornePeakY;
+      return fallDistance >= HERO_LANDING_BOUNCE_MIN_FALL && previousVY >= HERO_LANDING_BOUNCE_MIN_IMPACT;
+    }
+
+    function settleEntityOnSurface(entity, surface, halfH, previousVY) {
+      entity.y = surface.y - halfH;
+      if (shouldHeroLandingBounce(entity, surface, previousVY)) {
+        entity.vy = -Math.max(HERO_LANDING_BOUNCE_VELOCITY, previousVY * 0.45);
+        entity.onGround = false;
+        entity.touchingPlatform = false;
+        entity.landingBounceReady = false;
+        return;
+      }
+
+      if (entity.kind === "enemy") {
+        entity.vy = -Math.max(Math.abs(entity.vy) * 0.45, 120);
+      } else {
+        entity.vy = 0;
+        entity.onGround = true;
+      }
+      if (entity.kind !== "enemy" && surface.type === "platform") {
+        entity.touchingPlatform = true;
+      }
+    }
+
+    function resolveSolidCollisions(entity, previousX, previousY, previousVY) {
+      const halfW = entity.width * 0.5;
+      const halfH = entity.height * 0.5;
+      const previousLeft = previousX - halfW;
+      const previousRight = previousX + halfW;
+      const previousTop = previousY - halfH;
+      const previousBottom = previousY + halfH;
+
+      entity.onGround = false;
+      entity.touchingPlatform = false;
+
+      for (const surface of getSurfaces()) {
+        const left = surface.x;
+        const right = surface.x + surface.w;
+        const top = surface.y;
+        const bottom = getSurfaceBottom(surface);
+        const currentLeft = entity.x - halfW;
+        const currentRight = entity.x + halfW;
+        const currentTop = entity.y - halfH;
+        const currentBottom = entity.y + halfH;
+        const overlaps =
+          currentRight > left &&
+          currentLeft < right &&
+          currentBottom > top &&
+          currentTop < bottom;
+
+        if (!overlaps) {
+          continue;
+        }
+
+        const fromAbove = previousBottom <= top && currentBottom >= top;
+        const fromBelow = previousTop >= bottom && currentTop <= bottom;
+        const fromLeft = previousRight <= left && currentRight >= left;
+        const fromRight = previousLeft >= right && currentLeft <= right;
+        const platformBounce = surface.type === "platform";
+
+        if (fromAbove) {
+          settleEntityOnSurface(entity, surface, halfH, previousVY);
+          continue;
+        }
+
+        if (fromBelow) {
+          entity.y = bottom + halfH;
+          entity.vy = platformBounce
+            ? Math.max(Math.abs(entity.vy) * 0.55, 90)
+            : Math.max(entity.vy, 0);
+          continue;
+        }
+
+        if (fromLeft) {
+          entity.x = left - halfW;
+          entity.vx = platformBounce
+            ? -Math.max(Math.abs(entity.vx) * 0.7, 80)
+            : Math.min(entity.vx, 0);
+          continue;
+        }
+
+        if (fromRight) {
+          entity.x = right + halfW;
+          entity.vx = platformBounce
+            ? Math.max(Math.abs(entity.vx) * 0.7, 80)
+            : Math.max(entity.vx, 0);
+          continue;
+        }
+
+        const overlapLeft = currentRight - left;
+        const overlapRight = right - currentLeft;
+        const overlapTop = currentBottom - top;
+        const overlapBottom = bottom - currentTop;
+        const minOverlap = Math.min(overlapLeft, overlapRight, overlapTop, overlapBottom);
+
+        if (minOverlap === overlapTop) {
+          settleEntityOnSurface(entity, surface, halfH, previousVY);
+        } else if (minOverlap === overlapBottom) {
+          entity.y = bottom + halfH;
+          entity.vy = platformBounce
+            ? Math.max(Math.abs(entity.vy) * 0.55, 90)
+            : Math.max(entity.vy, 0);
+        } else if (minOverlap === overlapLeft) {
+          entity.x = left - halfW;
+          entity.vx = platformBounce
+            ? -Math.max(Math.abs(entity.vx) * 0.7, 80)
+            : Math.min(entity.vx, 0);
+        } else {
+          entity.x = right + halfW;
+          entity.vx = platformBounce
+            ? Math.max(Math.abs(entity.vx) * 0.7, 80)
+            : Math.max(entity.vx, 0);
+        }
+      }
+    }
+
+    function nearestPadTo(x) {
+      let best = state.spawnPads[0];
+      let bestDist = Infinity;
+      for (const pad of state.spawnPads) {
+        const dist = Math.abs(x - pad.x);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = pad;
+        }
+      }
+      return best;
+    }
+
+    function getRandomEnergyPad() {
+      if (!state.energyPads.length) {
+        return state.spawnPads[0];
+      }
+      return state.energyPads[Math.floor(randomBetween(0, state.energyPads.length))];
+    }
+
+    function wrapHorizontal(entity) {
+      if (entity.x >= WORLD.width) {
+        entity.x = 0;
+      } else if (entity.x <= 0) {
+        entity.x = WORLD.width;
+      }
+    }
+
+    function spawnParticles(x, y, color, count) {
+      for (let index = 0; index < count; index += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = randomBetween(35, 160);
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: randomBetween(0.45, 0.9),
+          size: randomBetween(2, 6),
+          color
+        });
+      }
+    }
+
+    function loseLife(player, reason, options = {}) {
+      const force = options.force === true;
+      if ((!force && player.invuln > 0) || state.over) {
+        return;
+      }
+      player.lives -= 1;
+      player.alive = false;
+      player.respawnTimer = player.lives > 0 ? PLAYER_RESPAWN_DELAY : 0;
+      player.deathFadeTimer = PLAYER_DEATH_FADE_DURATION;
+      player.invuln = 0;
+      spawnParticles(player.x, player.y, "#fff0ae", 18);
+      playSound(deathSound);
+
+      if (player.lives <= 0) {
+        const activeLiving = state.players.some((candidate) => candidate.active && candidate.lives > 0);
+        if (!activeLiving) {
+          state.over = true;
+          setStatus(`Game over. ${reason}`, "bad");
+        } else {
+          setStatus(`${player.name} is down. Keep the wave alive.`, "bad");
+        }
+      } else {
+        setStatus(`${player.name} loses a life. ${reason}`, "bad");
+      }
+      updateHud();
+    }
+
+    function defeatEnemy(enemy, spawnX = enemy.x, spawnY = enemy.y) {
+      enemy.alive = false;
+      state.eggs.push(createEgg(enemy, spawnX, spawnY));
+      spawnParticles(enemy.x, enemy.y, "#ffe3a6", 16);
+      playSound(deathSound);
+    }
+
+    function removePterodactyl(target) {
+      state.pterodactyls = state.pterodactyls.filter((pterodactyl) => pterodactyl !== target);
+    }
+
+    function defeatPterodactyl(pterodactyl) {
+      if (!pterodactyl) {
+        return;
+      }
+      state.score += pterodactyl.value;
+      spawnParticles(pterodactyl.x, pterodactyl.y, "#cdb8ff", 18);
+      playSound(boomSound);
+      removePterodactyl(pterodactyl);
+      updateHud();
+      setStatus("Pterodactyl down. Bonus points banked.", "good");
+    }
+
+    function birdHeight(entity) {
+      return entity.y - entity.height * 0.5;
+    }
+
+    function updateGameHeight(entity) {
+      const bottom = entity.y + entity.height * 0.5;
+      if (isOverLava(entity.x) && bottom >= WORLD.lavaDangerY) {
+        entity.gameHeight = 0;
+        return;
+      }
+      entity.gameHeight = 1;
+      for (let index = 0; index < PLATFORM_HEIGHT_LEVELS.length; index += 1) {
+        if (bottom <= PLATFORM_HEIGHT_LEVELS[index]) {
+          entity.gameHeight = PLATFORM_HEIGHT_LEVELS.length - index + 1;
+          return;
+        }
+      }
+    }
+
+    function flap(character, power) {
+      if (!character.alive || character.grabbed || character.flapCooldown > 0) {
+        return;
+      }
+      character.vy = Math.min(character.vy, power);
+      character.lanceRaise = 18;
+      character.onGround = false;
+      character.flapCooldown =
+        character.kind === "enemy" || character.kind === "pterodactyl" ? (character.flapInterval || 0.3) :
+        character.kind === "player" ? 0 :
+        0.18;
+      playSound(flapSound, { startTime: character.flapSoundOffset || 0 });
+    }
+
+    function updateInactiveCharacter(character, dt) {
+      if (character.deathFadeTimer > 0) {
+        character.deathFadeTimer = Math.max(0, character.deathFadeTimer - dt);
+      }
+      if (character.respawnTimer > 0) {
+        character.respawnTimer = Math.max(0, character.respawnTimer - dt);
+        if (character.respawnTimer <= 0 && character.lives > 0) {
+          const pad = getRandomEnergyPad();
+          resetCharacterToPad(character, pad);
+          character.warpFadeTimer = 4;
+          character.invuln = 1.4;
+          playTimedLoopSound(transporterSound, 4000);
+        }
+      }
+    }
+
+    function shouldLavaTrollGrab(character, sampleX = character.x, sampleY = character.y) {
+      if ((character.lavaTrollGraceTimer || 0) > 0) {
+        return false;
+      }
+      const bottom = sampleY + character.height * 0.5;
+      const trollGrabLine = WORLD.lavaDangerY - LAVA_TROLL_GRAB_BUFFER;
+      return isInsideVisibleArena(sampleX) && isOverLava(sampleX) && bottom >= trollGrabLine;
+    }
+
+    function applyCharacterPhysics(character, dt) {
+      if (!character.alive) {
+        updateInactiveCharacter(character, dt);
+        return;
+      }
+
+      character.invuln = Math.max(0, character.invuln - dt);
+      character.flapCooldown = Math.max(0, character.flapCooldown - dt);
+      character.tieTimer = Math.max(0, (character.tieTimer || 0) - dt);
+      character.lavaTrollGraceTimer = Math.max(0, (character.lavaTrollGraceTimer || 0) - dt);
+      character.lanceRaise = Math.max(0, character.lanceRaise - dt * 24);
+
+      if (character.grabbed) {
+        character.grabbedTimer += dt;
+        character.vx *= 0.85;
+        if (
+          character.kind === "player" &&
+          character.grabbedTimer <= LAVA_TROLL_ESCAPE_WINDOW &&
+          justPressedKeys.has(character.controls.flap)
+        ) {
+          character.trollEscapeFlaps = (character.trollEscapeFlaps || 0) + 1;
+          character.lanceRaise = 18;
+          if (character.trollEscapeFlaps >= LAVA_TROLL_ESCAPE_FLAPS) {
+            beginLavaTrollRetreat(character);
+            character.grabbed = false;
+            character.grabbedTimer = 0;
+            character.trollEscapeFlaps = 0;
+            character.lavaTrollGraceTimer = LAVA_TROLL_ESCAPE_GRACE;
+            character.onGround = false;
+            character.touchingPlatform = false;
+            character.y = Math.min(character.y, WORLD.lavaDangerY - character.height * 0.5 - 44);
+            character.vx += character.facing * 90;
+            character.vy = PLAYER_FLAP * 1.02;
+            return;
+          }
+        }
+        character.vy = 90;
+        character.y += 90 * dt;
+        if (character.grabbedTimer >= 0.95) {
+          beginLavaTrollRetreat(character);
+          character.grabbed = false;
+          character.trollEscapeFlaps = 0;
+          if (character.kind === "player") {
+            loseLife(character, "The Lava Troll dragged you into the lava.", { force: true });
+          } else if (character.kind === "enemy") {
+            character.alive = false;
+          } else if (character.kind === "pterodactyl") {
+            removePterodactyl(character);
+          }
+        }
+        return;
+      }
+
+      const previousX = character.x;
+      const previousY = character.y;
+      const previousVY = character.vy;
+      const wasOnGround = character.onGround;
+      character.vy += GRAVITY * dt;
+      character.x += character.vx * dt;
+      character.y += character.vy * dt;
+      wrapHorizontal(character);
+      if (character.y - character.height * 0.5 < 0) {
+        character.y = character.height * 0.5;
+        character.vy = Math.max(character.vy, 0);
+      }
+
+      if (Math.abs(character.vx) > 4) {
+        character.facing = character.vx > 0 ? 1 : -1;
+      }
+
+      resolveSolidCollisions(character, previousX, previousY, previousVY);
+      if (character.onGround) {
+        character.airbornePeakY = character.y;
+        character.landingBounceReady = true;
+      } else if (wasOnGround) {
+        character.airbornePeakY = Math.min(previousY, character.y);
+        character.landingBounceReady = true;
+      } else {
+        character.airbornePeakY = Math.min(character.airbornePeakY ?? previousY, character.y);
+      }
+      updateGameHeight(character);
+
+      const currentThreatened = shouldLavaTrollGrab(character, character.x, character.y);
+      const previousThreatened = shouldLavaTrollGrab(character, previousX, previousY);
+
+      if (currentThreatened || previousThreatened) {
+        character.grabbed = true;
+        character.grabbedTimer = 0;
+        character.trollEscapeFlaps = 0;
+      }
+    }
+
+    function updatePlayer(player, dt) {
+      if (!player.active) {
+        return;
+      }
+
+      if (!player.alive) {
+        updateInactiveCharacter(player, dt);
+        return;
+      }
+
+      if (player.warpFadeTimer > 0) {
+        player.warpFadeTimer = Math.max(0, player.warpFadeTimer - dt);
+        player.vx = 0;
+        player.vy = 0;
+        return;
+      }
+
+      if (player.grabbed) {
+        applyCharacterPhysics(player, dt);
+        return;
+      }
+
+      const axisX = (keys.has(player.controls.right) ? 1 : 0) - (keys.has(player.controls.left) ? 1 : 0);
+      const accel = player.onGround ? 700 : 520;
+      const drag = player.onGround ? 0.0008 : 0.01;
+
+      if (axisX !== 0) {
+        player.vx += axisX * accel * dt;
+      } else {
+        player.vx *= Math.pow(drag, dt);
+      }
+
+      const maxSpeed = 260;
+      player.vx = clamp(player.vx, -maxSpeed, maxSpeed);
+
+      if (shouldLavaTrollGrab(player)) {
+        player.grabbed = true;
+        player.grabbedTimer = 0;
+        applyCharacterPhysics(player, dt);
+        return;
+      }
+
+      if (justPressedKeys.has(player.controls.flap)) {
+        flap(player, PLAYER_FLAP);
+      }
+
+      applyCharacterPhysics(player, dt);
+    }
+
+    function updateBirdChaser(chaser, player, dt) {
+      const horizontalGap = wrappedDeltaX(chaser.x, player.x);
+      const closeForJoust = Math.abs(horizontalGap) < (chaser.width + player.width) * 1.45;
+      let targetX = chaser.x + horizontalGap;
+      const ceilingPlatform = getBlockingPlatformAbove(chaser);
+      const currentPlatform = chaser.onGround ? getStandingPlatform(chaser) : null;
+      let targetY = clamp(player.y, chaser.height * 0.55, WORLD.floorY - chaser.height * 0.65);
+      const heroGameHeight = player.gameHeight || 1;
+      const chaserGameHeight = chaser.gameHeight || 1;
+      const heroAboveChaserLevel = heroGameHeight > chaserGameHeight;
+      const heroPlatformY = getPlatformYForGameHeight(heroGameHeight);
+      const heroHighBandTargetY = heroPlatformY !== null ? heroPlatformY - 92 : null;
+      if (heroAboveChaserLevel && heroHighBandTargetY !== null) {
+        targetY = Math.min(targetY, heroHighBandTargetY);
+      }
+      if (closeForJoust) {
+        targetY = Math.min(targetY, player.y - 26);
+      }
+      const verticalEscapeDistance = WORLD.height * 0.2;
+      const bouncingIntoCeiling = Boolean(ceilingPlatform) && chaser.vy < -20;
+
+      if (!chaser.escapingStuck && (bouncingIntoCeiling || !canMoveVerticalDistance(chaser, targetY, chaser.x, verticalEscapeDistance))) {
+        chaser.stuckDirection = chaser.stuckDirection || (Math.random() < 0.5 ? -1 : 1);
+        chaser.stuckGameHeight = chaser.gameHeight;
+        chaser.escapingStuck = true;
+      }
+
+      if (chaser.escapingStuck) {
+        const escapeProbeX = chaser.x + chaser.stuckDirection * (chaser.width * 5.8);
+        if (chaser.gameHeight !== chaser.stuckGameHeight && canMoveVerticalDistance(chaser, targetY, chaser.x, verticalEscapeDistance)) {
+          chaser.escapingStuck = false;
+        } else {
+          const escapeOverLava =
+            isOverLava(chaser.x) && !(chaser.kind === "enemy" && hasPlatformBetweenEntityAndLava(chaser, chaser.x)) ||
+            isOverLava(escapeProbeX) && !(chaser.kind === "enemy" && hasPlatformBetweenEntityAndLava(chaser, escapeProbeX));
+          targetX = escapeProbeX;
+          targetY =
+            escapeOverLava
+              ? chaser.y - verticalEscapeDistance
+              : ceilingPlatform
+              ? chaser.y + 64
+              : currentPlatform
+                ? chaser.y + verticalEscapeDistance
+                : chaser.y + 24;
+        }
+      }
+
+      const dx = wrappedDeltaX(chaser.x, targetX);
+      const targetSpeed = (chaser.type.speed + 24) * (chaser.speedMultiplier || 1);
+      const desiredVx = clamp(dx * 2.35, -targetSpeed, targetSpeed);
+      chaser.vx += (desiredVx - chaser.vx) * Math.min(1, dt * (chaser.steeringBias || 4.2));
+
+      const verticalError = targetY - chaser.y;
+      const needsLift = chaser.y - targetY > 12;
+      const heroBelowChaser = verticalError > 12;
+      const shouldFlapToMatchHeroLevel = heroAboveChaserLevel && chaserGameHeight < heroGameHeight;
+      const shouldClimbForJoust = closeForJoust && chaser.y >= player.y - 18;
+      chaser.groundRunTimer =
+        chaser.onGround && Math.abs(chaser.vx) > 18
+          ? (chaser.groundRunTimer || 0) + dt
+          : 0;
+      const ranTooLong = chaser.groundRunTimer > 0.5;
+      const lavaBlockedByPlatform = chaser.kind === "enemy" && hasPlatformBetweenEntityAndLava(chaser, chaser.x);
+      const overLava = isOverLava(chaser.x) && !lavaBlockedByPlatform;
+      const gentleLavaFlap = overLava && chaserGameHeight === 2;
+      const overLavaFlapPressure = overLava && (!gentleLavaFlap || chaser.vy > 360 || chaser.y + chaser.height * 0.5 > WORLD.lavaDangerY + 10);
+      const shouldTakeOffFromGround = chaser.onGround && (
+        needsLift ||
+        shouldClimbForJoust ||
+        ranTooLong ||
+        shouldFlapToMatchHeroLevel ||
+        heroAboveChaserLevel ||
+        overLavaFlapPressure
+      );
+      const desiredVyPush = chaser.escapingStuck
+        ? clamp(Math.max(0, verticalError) * 10, 0, 760)
+        : clamp(Math.max(0, -verticalError) * (heroAboveChaserLevel ? 10.2 : 6.2), 0, heroAboveChaserLevel ? 620 : 420);
+      const desiredVy = chaser.vy + desiredVyPush * dt;
+      chaser.vy += (desiredVy - chaser.vy) * Math.min(1, dt * (chaser.verticalSmoothing || 1.9) * 8);
+
+      if (
+        (overLavaFlapPressure || shouldClimbForJoust || shouldFlapToMatchHeroLevel || !heroBelowChaser) &&
+        !ceilingPlatform && (
+          needsLift ||
+          shouldClimbForJoust ||
+          ranTooLong ||
+          overLavaFlapPressure ||
+          shouldFlapToMatchHeroLevel ||
+          heroAboveChaserLevel ||
+          shouldTakeOffFromGround ||
+          chaser.vy > 60 ||
+          (overLavaFlapPressure && chaser.y + chaser.height * 0.5 > WORLD.lavaDangerY - 32)
+        )
+      ) {
+        flap(chaser, gentleLavaFlap ? chaser.type.flap * 0.46 : chaser.type.flap);
+      }
+
+      applyCharacterPhysics(chaser, dt);
+    }
+
+    function shouldEnemiesRoamAimlessly() {
+      return !getNearestActivePlayer({ x: WORLD.width * 0.5, y: WORLD.height * 0.5 });
+    }
+
+    function updateEnemyWander(enemy, dt) {
+      enemy.decisionTimer = Math.max(0, (enemy.decisionTimer || 0) - dt);
+      if (enemy.decisionTimer <= 0) {
+        enemy.facing = Math.random() < 0.5 ? -1 : 1;
+        enemy.decisionTimer = randomBetween(0.8, 1.7);
+        enemy.wanderSpeed = randomBetween(0.8, 1.6);
+        enemy.wanderX = randomBetween(18, 54);
+        enemy.wanderY = randomBetween(22, 68);
+      }
+
+      enemy.wanderPhase = (enemy.wanderPhase || 0) + dt * (enemy.wanderSpeed || 1);
+      const cruiseSpeed = Math.max(72, enemy.type.speed * 0.42);
+      const meander = Math.sin(enemy.wanderPhase * 1.35) * (enemy.wanderX || 36);
+      const desiredVx = enemy.facing * cruiseSpeed + meander;
+      enemy.vx += (desiredVx - enemy.vx) * Math.min(1, dt * 1.8);
+
+      const roamCenterY = 250 + enemy.type.preferredAltitude * 0.55;
+      const roamTargetY = clamp(
+        roamCenterY + Math.sin(enemy.wanderPhase * 0.8 + (enemy.orbitPhase || 0)) * (enemy.wanderY || 40),
+        enemy.height * 0.55,
+        WORLD.lavaDangerY - 210
+      );
+      const needsLift = enemy.y - roamTargetY > 16;
+      const tooLow = enemy.y + enemy.height * 0.5 > WORLD.lavaDangerY - 54;
+      const takingLongGroundRun = enemy.onGround && Math.abs(enemy.vx) > 18;
+      if (needsLift || tooLow || takingLongGroundRun || enemy.vy > 110) {
+        flap(enemy, enemy.type.flap * 0.88);
+      }
+
+      applyCharacterPhysics(enemy, dt);
+    }
+
+    function updateEnemy(enemy, dt) {
+      if (!enemy.alive) {
+        return;
+      }
+
+      if (shouldEnemiesRoamAimlessly()) {
+        updateEnemyWander(enemy, dt);
+        return;
+      }
+
+      const player = getPrimaryTarget(enemy);
+      if (!player) {
+        enemy.vx *= Math.pow(0.12, dt);
+        applyCharacterPhysics(enemy, dt);
+        return;
+      }
+
+      updateBirdChaser(enemy, player, dt);
+    }
+
+    function updatePterodactyl(pterodactyl, dt) {
+      if (!pterodactyl) {
+        return;
+      }
+      if (pterodactyl.exiting) {
+        pterodactyl.exitFlapTimer = Math.max(0, (pterodactyl.exitFlapTimer || 0) - dt);
+        if (pterodactyl.exitFlapTimer <= 0) {
+          playPterodactylExitFlaps(pterodactyl);
+          pterodactyl.exitFlapTimer = pterodactyl.exitFlapInterval || 0.42;
+        }
+        const exitDirection = pterodactyl.exitDirection || (pterodactyl.x < WORLD.width * 0.5 ? -1 : 1);
+        pterodactyl.exitDirection = exitDirection;
+        pterodactyl.facing = exitDirection;
+        pterodactyl.onGround = false;
+        pterodactyl.touchingPlatform = false;
+        const exitSpeed = (pterodactyl.type.speed + 80) * 1.35;
+        pterodactyl.vx += (exitDirection * exitSpeed - pterodactyl.vx) * Math.min(1, dt * 3.4);
+        const exitTargetY = 96;
+        pterodactyl.vy += ((exitTargetY - pterodactyl.y) * 2.1 - pterodactyl.vy) * Math.min(1, dt * 3.2);
+        pterodactyl.x += pterodactyl.vx * dt;
+        pterodactyl.y += pterodactyl.vy * dt;
+        if (
+          pterodactyl.x < -pterodactyl.width ||
+          pterodactyl.x > WORLD.width + pterodactyl.width ||
+          pterodactyl.y < -pterodactyl.height
+        ) {
+          removePterodactyl(pterodactyl);
+        }
+        return;
+      }
+      const player = getPrimaryTarget(pterodactyl);
+      if (!player) {
+        const playerReturning = state.players.some((candidate) => candidate.active && candidate.lives > 0);
+        if (!playerReturning) {
+          removePterodactyl(pterodactyl);
+          return;
+        }
+        const patrolSpeed = Math.max(90, pterodactyl.type.speed * 0.85);
+        pterodactyl.vx += ((pterodactyl.facing || 1) * patrolSpeed - pterodactyl.vx) * Math.min(1, dt * 2.4);
+        const patrolTargetY = 180;
+        pterodactyl.vy += ((patrolTargetY - pterodactyl.y) * 1.8 - pterodactyl.vy) * Math.min(1, dt * 2.2);
+        pterodactyl.x += pterodactyl.vx * dt;
+        pterodactyl.y += pterodactyl.vy * dt;
+        wrapHorizontal(pterodactyl);
+        if (pterodactyl.y - pterodactyl.height * 0.5 < 0) {
+          pterodactyl.y = pterodactyl.height * 0.5;
+          pterodactyl.vy = Math.max(pterodactyl.vy, 0);
+        }
+        if (pterodactyl.y + pterodactyl.height * 0.5 > WORLD.lavaDangerY - 120) {
+          pterodactyl.y = WORLD.lavaDangerY - 120 - pterodactyl.height * 0.5;
+          pterodactyl.vy = Math.min(pterodactyl.vy, 0);
+        }
+        return;
+      }
+
+      if ((pterodactyl.attackTimer || 0) > 0) {
+        pterodactyl.attackTimer = Math.max(0, pterodactyl.attackTimer - dt);
+        if (pterodactyl.attackTimer <= 0) {
+          pterodactyl.attackCooldown = 6;
+        }
+      } else {
+        pterodactyl.attackCooldown = Math.max(0, (pterodactyl.attackCooldown || 0) - dt);
+        if (pterodactyl.attackCooldown <= 0) {
+          pterodactyl.attackTimer = 2;
+          playSound(squakSound);
+        }
+      }
+      pterodactyl.speedMultiplier =
+        pterodactyl.attackTimer > 0
+          ? ((ENEMY_TYPES.hunter.speed + 24) * 1.5) / (pterodactyl.type.speed + 24)
+          : 1;
+
+      updateBirdChaser(pterodactyl, player, dt);
+    }
+
+    function updateEggs(dt) {
+      const remaining = [];
+      for (const egg of state.eggs) {
+        if (egg.inLava) {
+          egg.lavaSink += dt;
+          egg.vx *= Math.pow(0.08, dt);
+          egg.vy = Math.max(egg.vy, 24);
+          egg.y += (42 + egg.lavaSink * 70) * dt;
+          if (egg.y - egg.radius > WORLD.lavaY + 90) {
+            continue;
+          }
+          remaining.push(egg);
+          continue;
+        }
+
+        egg.x += egg.vx * dt;
+        if (egg.x > WORLD.width) {
+          egg.x = 0;
+        } else if (egg.x < 0) {
+          egg.x = WORLD.width;
+        }
+        egg.vy += GRAVITY * dt;
+        egg.y += egg.vy * dt;
+        const onIsland = egg.x >= WORLD.island.x && egg.x <= WORLD.island.x + WORLD.island.w;
+        let landed = false;
+
+        for (const platform of state.platforms) {
+          const platformGameHeight = getPlatformGameHeight(platform.y);
+          if (platformGameHeight > (egg.maxGameHeight || 1)) {
+            continue;
+          }
+          const within = egg.x >= platform.x && egg.x <= platform.x + platform.w;
+          if (within && egg.vy >= 0 && egg.y + egg.radius >= platform.y) {
+            egg.y = platform.y - egg.radius;
+            egg.maxGameHeight = Math.min(egg.maxGameHeight || platformGameHeight, platformGameHeight);
+            landed = true;
+            break;
+          }
+        }
+
+        if (!onIsland && egg.y + egg.radius >= WORLD.lavaY) {
+          egg.inLava = true;
+          egg.lavaSink = 0;
+          egg.vx *= 0.35;
+          egg.vy = 0;
+          egg.y = WORLD.lavaY - egg.radius * 0.28;
+          remaining.push(egg);
+          continue;
+        }
+
+        if (!landed && onIsland && egg.vy >= 0 && egg.y + egg.radius >= WORLD.island.y) {
+          egg.y = WORLD.island.y - egg.radius;
+          egg.maxGameHeight = 1;
+          landed = true;
+        }
+
+        if (landed) {
+          const impactSpeed = Math.abs(egg.vy);
+          if (impactSpeed > 120) {
+            egg.vy = -impactSpeed * 0.32;
+            egg.vx *= 0.9;
+            egg.landTimer = 0;
+          } else {
+            egg.vy = 0;
+            egg.vx *= Math.pow(0.08, dt);
+            if (Math.abs(egg.vx) < 10) {
+              egg.vx = 0;
+              egg.landTimer += dt;
+            } else {
+              egg.landTimer = 0;
+            }
+          }
+        }
+
+        let collected = false;
+        for (const player of state.players) {
+          if (!player.active || !player.alive) {
+            continue;
+          }
+          if (Math.hypot(player.x - egg.x, player.y - egg.y) <= player.radius + egg.radius) {
+            state.score += egg.value;
+            spawnParticles(egg.x, egg.y, "#fff2a4", 12);
+            playSound(gulpSound);
+            setStatus(`${player.name} collected an egg for ${egg.value} points.`, "good");
+            updateHud();
+            collected = true;
+            break;
+          }
+        }
+
+        if (collected) {
+          continue;
+        }
+
+        if (egg.landTimer >= EGG_REHATCH_DELAY && !egg.hatching) {
+          beginEggRescue(egg);
+        }
+
+        if (egg.hatching) {
+          const hatchElapsed = EGG_RESCUE_DURATION - egg.hatchTimer;
+          const rescueBirdStart = EGG_KNIGHT_EMERGE_DURATION + EGG_KNIGHT_SOLO_DURATION;
+          if (egg.rescueBird && hatchElapsed >= rescueBirdStart) {
+            const targetX = egg.x - egg.rescueBird.pickupDirection * 1.5;
+            const targetY = egg.y + 12;
+            egg.rescueBird.vx += ((targetX - egg.rescueBird.x) * 6.4 - egg.rescueBird.vx) * Math.min(1, dt * 5.4);
+            egg.rescueBird.vy += ((targetY - egg.rescueBird.y) * 5.8 - egg.rescueBird.vy) * Math.min(1, dt * 5.2);
+            egg.rescueBird.x += egg.rescueBird.vx * dt;
+            egg.rescueBird.y += egg.rescueBird.vy * dt;
+            if (egg.rescueBird.pickupDirection > 0 && egg.rescueBird.x > targetX) {
+              egg.rescueBird.x = targetX;
+              egg.rescueBird.vx = 0;
+            } else if (egg.rescueBird.pickupDirection < 0 && egg.rescueBird.x < targetX) {
+              egg.rescueBird.x = targetX;
+              egg.rescueBird.vx = 0;
+            }
+            egg.rescueBird.y = Math.min(egg.rescueBird.y, egg.y + 14);
+            if (Math.abs(egg.rescueBird.vx) > 6) {
+              egg.rescueBird.facing = egg.rescueBird.vx > 0 ? 1 : -1;
+            }
+          }
+          egg.hatchTimer = Math.max(0, egg.hatchTimer - dt);
+          if (egg.hatchTimer <= 0) {
+            const tougherTypeKey = getNextTougherEnemyType(egg.typeKey);
+            state.serial += 1;
+            const rescueBird = egg.rescueBird;
+            const rescuedEnemy = createEnemy(
+              tougherTypeKey,
+              { x: rescueBird?.x ?? egg.x, y: rescueBird?.y ?? egg.y },
+              state.wave,
+              state.serial,
+              { exactSpawn: true }
+            );
+            if (rescueBird) {
+              rescuedEnemy.x = rescueBird.x;
+              rescuedEnemy.y = rescueBird.y;
+              rescuedEnemy.vx = rescueBird.vx;
+              rescuedEnemy.vy = rescueBird.vy - 10;
+              rescuedEnemy.facing = rescueBird.facing;
+            }
+            state.enemies.push(rescuedEnemy);
+            playSound(jellybounceSound);
+            spawnParticles(rescueBird?.x ?? egg.x, rescueBird?.y ?? egg.y, "#ffd8a6", 10);
+            setStatus("A fresh buzzard swooped in and picked up the stranded rider.", "bad");
+            continue;
+          }
+        }
+
+        remaining.push(egg);
+      }
+      state.eggs = remaining;
+    }
+
+    function updateParticles(dt) {
+      const remaining = [];
+      for (const particle of state.particles) {
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        particle.vy += 160 * dt;
+        particle.life -= dt;
+        if (particle.life > 0) {
+          remaining.push(particle);
+        }
+      }
+      state.particles = remaining;
+    }
+
+    function resolveJoust(attacker, defender) {
+      const attackerHeight = birdHeight(attacker);
+      const defenderHeight = birdHeight(defender);
+      const heightDelta = defenderHeight - attackerHeight;
+      const direction = wrappedDeltaX(attacker.x, defender.x) >= 0 ? 1 : -1;
+      const pterodactyl =
+        attacker.kind === "pterodactyl" ? attacker :
+        defender.kind === "pterodactyl" ? defender :
+        null;
+      const player =
+        attacker.kind === "player" ? attacker :
+        defender.kind === "player" ? defender :
+        null;
+      const tieHeightWindow = pterodactyl ? 20 : 10;
+
+      if (Math.abs(heightDelta) < tieHeightWindow) {
+        const repeatedTie = (attacker.tieTimer || 0) > 0 || (defender.tieTimer || 0) > 0;
+        const pterodactylTie = Boolean(pterodactyl);
+        attacker.vx -= 140 * direction;
+        defender.vx += 140 * direction;
+        attacker.vy -= 55;
+        defender.vy -= 55;
+        if (attacker.kind === "enemy" || defender.kind === "enemy") {
+          playSound(metalClangSound);
+          if (repeatedTie) {
+            if (attacker.kind === "enemy") {
+              attacker.flapCooldown = 0;
+              flap(attacker, attacker.type.flap);
+            }
+            if (defender.kind === "enemy") {
+              defender.flapCooldown = 0;
+              flap(defender, defender.type.flap);
+            }
+          }
+        }
+        if (pterodactylTie) {
+          defeatPterodactyl(attacker.kind === "pterodactyl" ? attacker : defender);
+        }
+        attacker.tieTimer = 0.45;
+        defender.tieTimer = 0.45;
+        spawnParticles((attacker.x + defender.x) * 0.5, (attacker.y + defender.y) * 0.5, "#fff2c4", 8);
+        return;
+      }
+
+      if (pterodactyl && player) {
+        const impactDirection = wrappedDeltaX(pterodactyl.x, player.x) >= 0 ? 1 : -1;
+        pterodactyl.vx -= 95 * impactDirection;
+        pterodactyl.vy -= 45;
+        player.vx += 210 * impactDirection;
+        player.vy -= 145;
+        spawnParticles(player.x, player.y, "#d8c7ff", 14);
+        if (player.warpFadeTimer <= 0) {
+          loseLife(player, "The pterodactyl tore through your lance.", { force: true });
+        }
+        return;
+      }
+
+      const winner = heightDelta > 0 ? attacker : defender;
+      const loser = winner === attacker ? defender : attacker;
+      const impactDirection = wrappedDeltaX(winner.x, loser.x) >= 0 ? 1 : -1;
+      const deathX = loser.x;
+      const deathY = loser.y;
+      winner.vx -= 85 * impactDirection;
+      winner.vy -= 55;
+      loser.vx += 220 * impactDirection;
+      loser.vy -= 145;
+      spawnParticles(loser.x, loser.y, "#ffd4a6", 14);
+
+      if (loser.kind === "enemy") {
+        defeatEnemy(loser, deathX, deathY);
+        if (winner.kind === "player") {
+          winner.vx -= 190 * impactDirection;
+          winner.vy -= 145;
+          state.score += loser.value;
+          updateHud();
+        }
+      } else if (loser.kind === "pterodactyl") {
+        winner.vx -= 110 * impactDirection;
+        winner.vy -= 45;
+        loser.vx += 170 * impactDirection;
+        loser.vy -= 70;
+        spawnParticles((winner.x + loser.x) * 0.5, (winner.y + loser.y) * 0.5, "#d8c7ff", 10);
+      } else if (loser.kind === "player") {
+        loseLife(loser, "You lost the joust.");
+      }
+    }
+
+    function overlaps(a, b) {
+      return Math.abs(wrappedDeltaX(a.x, b.x)) < (a.width + b.width) * 0.42 && Math.abs(a.y - b.y) < (a.height + b.height) * 0.45;
+    }
+
+    function handleCharacterCollisions() {
+      const activePlayers = state.players.filter((player) => player.active && player.alive);
+
+      for (const player of activePlayers) {
+        for (const enemy of state.enemies) {
+          if (enemy.alive && overlaps(player, enemy)) {
+            resolveJoust(player, enemy);
+          }
+        }
+
+        for (const pterodactyl of state.pterodactyls) {
+          if (!pterodactyl.exiting && player.warpFadeTimer <= 0 && overlaps(player, pterodactyl)) {
+            resolveJoust(player, pterodactyl);
+          }
+        }
+      }
+
+      if (state.friendlyFire && activePlayers.length === 2 && overlaps(activePlayers[0], activePlayers[1])) {
+        resolveJoust(activePlayers[0], activePlayers[1]);
+      }
+    }
+
+    function cleanupEntities() {
+      state.enemies = state.enemies.filter((enemy) => enemy.alive);
+      state.pterodactyls = state.pterodactyls.filter((pterodactyl) => pterodactyl.alive !== false);
+    }
+
+    function maybeAdvanceWave(dt) {
+      const enemiesRemain = state.enemies.length > 0;
+      const eggsRemain = state.eggs.length > 0;
+      const readyToClear = !enemiesRemain && !eggsRemain;
+      const onlyPterodactylsRemain = readyToClear && state.pterodactyls.length > 0;
+      if (readyToClear && !state.over) {
+        if (onlyPterodactylsRemain) {
+          for (const pterodactyl of state.pterodactyls) {
+            if (!pterodactyl.exiting) {
+              pterodactyl.exiting = true;
+              pterodactyl.exitDirection = pterodactyl.x < WORLD.width * 0.5 ? -1 : 1;
+              pterodactyl.exitFlapTimer = 0;
+            }
+          }
+        }
+        state.waveClearTimer += dt;
+        if (state.waveClearTimer <= dt) {
+          setStatus(
+            onlyPterodactylsRemain
+              ? `Wave ${state.wave} cleared. The pterodactyl retreats.`
+              : `Wave ${state.wave} cleared. Brace for the next assault.`,
+            "good"
+          );
+        }
+        if ((!onlyPterodactylsRemain && state.waveClearTimer >= 2.2) || (onlyPterodactylsRemain && state.pterodactyls.length === 0)) {
+          startWave(state.wave + 1);
+          setStatus(`Wave ${state.wave} rises with fiercer riders.`, "good");
+        }
+      } else {
+        state.waveClearTimer = 0;
+      }
+    }
+
+    function maybeSpawnPterodactyl() {
+      const activePlayers = state.players.filter((player) => player.active && player.alive && player.lives > 0);
+      if (!activePlayers.length) {
+        return;
+      }
+      const spawnSchedule = [20, 40];
+      while (state.pterodactylSpawns < spawnSchedule.length && state.waveTimer >= spawnSchedule[state.pterodactylSpawns]) {
+        state.pterodactyls.push(createPterodactyl(activePlayers));
+        state.pterodactylSpawns += 1;
+        playSound(pterodactylSpawnSound);
+        setStatus(
+          state.pterodactylSpawns === 1
+            ? "A pterodactyl swoops in from above."
+            : "A second pterodactyl dives into the fight.",
+          "bad"
+        );
+      }
+    }
+
+    function update(dt) {
+      if (!state) {
+        return;
+      }
+
+      updateTitleMusicFade(dt);
+
+      if (state.paused) {
+        setLoopingSound(platformTouchSound, false);
+        setLoopingSound(transporterSound, false);
+        setLoopingSound(gameplayMusic, false);
+        return;
+      }
+
+      if (state.awaitingStart) {
+        setLoopingSound(platformTouchSound, false);
+        setLoopingSound(gameplayMusic, true);
+        state.introTimer = Math.min(4, state.introTimer + dt);
+        if (state.introTimer < 4) {
+          setLoopingSound(transporterSound, true);
+        } else {
+          beginWaveGameplay();
+        }
+        updateParticles(dt);
+        return;
+      }
+
+      setLoopingSound(transporterSound, false);
+      setLoopingSound(gameplayMusic, !state.over);
+
+      if (!state.over) {
+        state.waveTimer += dt;
+        maybeSpawnPterodactyl();
+      }
+
+      for (const player of state.players) {
+        updatePlayer(player, dt);
+      }
+      if (!state.over) {
+        for (const enemy of state.enemies) {
+          updateEnemy(enemy, dt);
+        }
+        for (const pterodactyl of [...state.pterodactyls]) {
+          updatePterodactyl(pterodactyl, dt);
+        }
+        updateEggs(dt);
+        handleCharacterCollisions();
+        cleanupEntities();
+        maybeAdvanceWave(dt);
+      } else {
+        for (const pterodactyl of [...state.pterodactyls]) {
+          if (pterodactyl.grabbed) {
+            updatePterodactyl(pterodactyl, dt);
+          }
+        }
+      }
+
+      const anyBirdWalkingOnPlatform =
+        state.players.some((player) => player.active && player.alive && player.onGround && Math.abs(player.vx) > 14) ||
+        state.enemies.some((enemy) => enemy.alive && enemy.onGround && Math.abs(enemy.vx) > 14) ||
+        false;
+      setLoopingSound(platformTouchSound, anyBirdWalkingOnPlatform);
+
+      if (state.lavaTrollRetreat) {
+        state.lavaTrollRetreat.y += 140 * dt;
+        if (state.lavaTrollRetreat.y >= state.lavaTrollRetreat.sinkY) {
+          state.lavaTrollRetreat = null;
+        }
+      }
+
+      updateParticles(dt);
+    }
+
+    function drawSky() {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, "#1a1128");
+      sky.addColorStop(0.45, "#2b3354");
+      sky.addColorStop(1, "#503028");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(canvas.width, 0);
+      ctx.lineTo(canvas.width, canvas.height * 0.3);
+      ctx.lineTo(canvas.width * 0.78, canvas.height * 0.22);
+      ctx.lineTo(canvas.width * 0.61, canvas.height * 0.29);
+      ctx.lineTo(canvas.width * 0.43, canvas.height * 0.21);
+      ctx.lineTo(canvas.width * 0.27, canvas.height * 0.3);
+      ctx.lineTo(canvas.width * 0.14, canvas.height * 0.24);
+      ctx.lineTo(0, canvas.height * 0.32);
+      ctx.closePath();
+      ctx.clip();
+      for (const star of (state?.stars ?? titleStars)) {
+        ctx.globalAlpha = star.alpha;
+        ctx.fillStyle = "#f7f3ff";
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+
+      ctx.globalAlpha = 0.2;
+      ctx.fillStyle = "#f7d7b0";
+      ctx.beginPath();
+      ctx.arc(180, 150, 78, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = "rgba(18, 15, 28, 0.62)";
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height * 0.32);
+      ctx.lineTo(canvas.width * 0.14, canvas.height * 0.24);
+      ctx.lineTo(canvas.width * 0.27, canvas.height * 0.3);
+      ctx.lineTo(canvas.width * 0.43, canvas.height * 0.21);
+      ctx.lineTo(canvas.width * 0.61, canvas.height * 0.29);
+      ctx.lineTo(canvas.width * 0.78, canvas.height * 0.22);
+      ctx.lineTo(canvas.width, canvas.height * 0.3);
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.lineTo(0, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(196, 86, 40, 0.14)";
+      ctx.lineWidth = 16;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(canvas.width * 0.105, canvas.height * 0.262);
+      ctx.lineTo(canvas.width * 0.14, canvas.height * 0.248);
+      ctx.lineTo(canvas.width * 0.175, canvas.height * 0.262);
+      ctx.moveTo(canvas.width * 0.39, canvas.height * 0.234);
+      ctx.lineTo(canvas.width * 0.43, canvas.height * 0.22);
+      ctx.lineTo(canvas.width * 0.47, canvas.height * 0.236);
+      ctx.moveTo(canvas.width * 0.74, canvas.height * 0.244);
+      ctx.lineTo(canvas.width * 0.78, canvas.height * 0.23);
+      ctx.lineTo(canvas.width * 0.82, canvas.height * 0.246);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(176, 82, 44, 0.18)";
+      ctx.lineWidth = 5;
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      ctx.moveTo(canvas.width * 0.118, canvas.height * 0.252);
+      ctx.lineTo(canvas.width * 0.14, canvas.height * 0.246);
+      ctx.lineTo(canvas.width * 0.162, canvas.height * 0.254);
+      ctx.moveTo(canvas.width * 0.405, canvas.height * 0.224);
+      ctx.lineTo(canvas.width * 0.43, canvas.height * 0.218);
+      ctx.lineTo(canvas.width * 0.455, canvas.height * 0.228);
+      ctx.moveTo(canvas.width * 0.752, canvas.height * 0.234);
+      ctx.lineTo(canvas.width * 0.78, canvas.height * 0.228);
+      ctx.lineTo(canvas.width * 0.808, canvas.height * 0.238);
+      ctx.stroke();
+
+      ctx.strokeStyle = "rgba(206, 136, 72, 0.1)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(canvas.width * 0.124, canvas.height * 0.249);
+      ctx.lineTo(canvas.width * 0.14, canvas.height * 0.246);
+      ctx.lineTo(canvas.width * 0.156, canvas.height * 0.25);
+      ctx.moveTo(canvas.width * 0.412, canvas.height * 0.222);
+      ctx.lineTo(canvas.width * 0.43, canvas.height * 0.218);
+      ctx.lineTo(canvas.width * 0.448, canvas.height * 0.224);
+      ctx.moveTo(canvas.width * 0.76, canvas.height * 0.232);
+      ctx.lineTo(canvas.width * 0.78, canvas.height * 0.228);
+      ctx.lineTo(canvas.width * 0.8, canvas.height * 0.234);
+      ctx.stroke();
+    }
+
+    function drawLava() {
+      const sceneTime = state?.waveTimer ?? titleTimer;
+      const lava = ctx.createLinearGradient(0, WORLD.lavaY, 0, canvas.height);
+      lava.addColorStop(0, "#ff8d40");
+      lava.addColorStop(0.3, "#eb5527");
+      lava.addColorStop(1, "#7c180c");
+      ctx.fillStyle = lava;
+      ctx.fillRect(0, WORLD.lavaY, canvas.width, canvas.height - WORLD.lavaY);
+
+      ctx.globalAlpha = 0.22;
+      for (let index = 0; index < 9; index += 1) {
+        const x = index * 180 + Math.sin(sceneTime * 1.5 + index) * 30;
+        ctx.fillStyle = index % 2 === 0 ? "#ffd06b" : "#ff9558";
+        ctx.beginPath();
+        ctx.ellipse(x, WORLD.lavaY + 55 + Math.sin(sceneTime * 2 + index * 0.7) * 14, 110, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawIsland() {
+      fillRockShape(() => {
+        ctx.beginPath();
+        ctx.rect(WORLD.island.x, WORLD.island.y, WORLD.island.w, canvas.height - WORLD.island.y);
+      }, "#57483b");
+      ctx.fillStyle = "rgba(141, 132, 119, 0.78)";
+      ctx.fillRect(WORLD.island.x, WORLD.island.y - 10, WORLD.island.w, 14);
+    }
+
+    function drawPlatform(platform) {
+      fillRockShape(() => {
+        ctx.beginPath();
+        ctx.moveTo(platform.x, platform.y);
+        ctx.lineTo(platform.x + platform.w, platform.y);
+        ctx.lineTo(platform.x + platform.w - 18, platform.y + 28);
+        ctx.lineTo(platform.x + 18, platform.y + 28);
+        ctx.closePath();
+      }, "#6b625a");
+
+      ctx.fillStyle = "rgba(148, 141, 133, 0.82)";
+      ctx.fillRect(platform.x, platform.y - 10, platform.w, 12);
+    }
+
+    function drawEnergyPad(pad) {
+      ctx.save();
+      ctx.translate(pad.x, pad.y - 8);
+      ctx.fillStyle = "rgba(82, 238, 255, 0.18)";
+      ctx.beginPath();
+      ctx.ellipse(0, 8, 68, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(129, 251, 255, 0.72)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(0, 6, 52, 10, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = "rgba(160, 255, 255, 0.35)";
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 30, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawLavaTrollHand(x, y, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(x, y);
+      ctx.fillStyle = "#442516";
+      ctx.beginPath();
+      ctx.moveTo(-16, 20);
+      ctx.quadraticCurveTo(-18, 2, -10, -20);
+      ctx.quadraticCurveTo(-6, -36, 2, -44);
+      ctx.quadraticCurveTo(9, -34, 10, -18);
+      ctx.lineTo(14, -8);
+      ctx.quadraticCurveTo(19, 6, 18, 20);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#5a301d";
+      ctx.beginPath();
+      ctx.ellipse(1, -18, 15, 11, -0.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#442516";
+      ctx.beginPath();
+      ctx.moveTo(-8, -16);
+      ctx.lineTo(-16, -38);
+      ctx.lineTo(-8, -42);
+      ctx.lineTo(-2, -20);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(-2, -20);
+      ctx.lineTo(-4, -48);
+      ctx.lineTo(4, -50);
+      ctx.lineTo(6, -20);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(5, -18);
+      ctx.lineTo(10, -44);
+      ctx.lineTo(18, -42);
+      ctx.lineTo(12, -16);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(12, -12);
+      ctx.lineTo(22, -30);
+      ctx.lineTo(28, -24);
+      ctx.lineTo(16, -8);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(107, 67, 42, 0.7)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-6, -14);
+      ctx.quadraticCurveTo(-1, -6, 4, -12);
+      ctx.moveTo(-1, -10);
+      ctx.quadraticCurveTo(4, -2, 10, -8);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawLavaTrollGrab(character) {
+      if (!character.grabbed) {
+        return;
+      }
+      drawLavaTrollHand(character.x, Math.max(character.y + 28, WORLD.lavaY - 10));
+    }
+
+    function drawLavaTrollRetreat() {
+      if (!state?.lavaTrollRetreat) {
+        return;
+      }
+      const retreat = state.lavaTrollRetreat;
+      const fade = clamp(1 - (retreat.y - (WORLD.lavaY - 10)) / Math.max(1, retreat.sinkY - (WORLD.lavaY - 10)), 0, 1);
+      drawLavaTrollHand(retreat.x, retreat.y, fade * fade * 0.9);
+    }
+
+    function drawCharacter(character, riderColor, mountColor, mountType, options = {}) {
+      const introAlpha = state.awaitingStart
+        ? (state.introActive ? clamp(state.introTimer / 4, 0, 1) : 0)
+        : 1;
+      const warpAlpha = character.warpFadeTimer > 0 ? clamp(1 - character.warpFadeTimer / 4, 0, 1) : 1;
+      const deathAlpha = character.alive
+        ? 1
+        : clamp((character.deathFadeTimer ?? 0) / PLAYER_DEATH_FADE_DURATION, 0, 1);
+      const alpha = deathAlpha * introAlpha * warpAlpha * (options.alphaMultiplier ?? 1);
+      const runningLift =
+        character.onGround && Math.abs(character.vx) > 18
+          ? character.kind === "player"
+            ? (Math.floor(state.waveTimer * 12) % 2 === 0 ? 1 : 5)
+            : 4
+          : 0;
+      const drawScale = character.drawScale ?? 1;
+      const badgeOffset = 34 * drawScale;
+      const badgeRadius = 12 * drawScale;
+      const riderOnly = options.riderOnly === true;
+      const hideRider = options.hideRider === true;
+      const hideLance = options.hideLance === true;
+      const usesHeroBirdSprite = mountType === "ostrich" && !riderOnly;
+      ctx.save();
+      ctx.translate(character.x, character.y - runningLift);
+      ctx.scale(character.facing * drawScale, drawScale);
+      ctx.globalAlpha = alpha;
+
+      if (!riderOnly) {
+        if (!usesHeroBirdSprite) {
+          ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(-10, 18);
+          ctx.quadraticCurveTo(-22, 26, -30, 20);
+          ctx.moveTo(2, 19);
+          ctx.quadraticCurveTo(-10, 28, -18, 22);
+          ctx.stroke();
+        }
+
+        if (mountType === "pterodactyl") {
+          // Pterodactyl torso and main wing silhouette.
+          ctx.fillStyle = "#392b4f";
+          ctx.beginPath();
+          ctx.ellipse(-6, 8, 30, 15, -0.16, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.beginPath();
+          ctx.moveTo(-14, 4);
+          ctx.lineTo(-62, -40);
+          ctx.lineTo(-118, -20);
+          ctx.lineTo(-66, -2);
+          ctx.lineTo(-120, 26);
+          ctx.lineTo(-56, 34);
+          ctx.closePath();
+          ctx.fillStyle = "#5a476f";
+          ctx.fill();
+
+          ctx.fillStyle = "rgba(223, 205, 255, 0.12)";
+          ctx.beginPath();
+          ctx.moveTo(-20, 1);
+          ctx.lineTo(-72, -22);
+          ctx.lineTo(-46, -2);
+          ctx.lineTo(-72, 18);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.strokeStyle = "rgba(29, 18, 40, 0.5)";
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(-10, 8);
+          ctx.lineTo(-62, -20);
+          ctx.lineTo(-104, -12);
+          ctx.moveTo(-8, 10);
+          ctx.lineTo(-64, 24);
+          ctx.lineTo(-102, 22);
+          ctx.stroke();
+        } else if (usesHeroBirdSprite) {
+          // Player 1 bird sprite render.
+          const sprite = getHeroBirdSprite(character);
+          if (sprite.complete && sprite.naturalWidth > 0) {
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(sprite, -63.14, -54.56, 130.68, 87.12);
+          } else {
+            // Fallback body if the sprite has not loaded yet.
+            ctx.fillStyle = mountColor;
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 27, 13, 0, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        } else {
+          const sleekOstrich = mountType === "ostrich";
+          const enemyBuzzard = mountType === "buzzard";
+          if (enemyBuzzard) {
+            // Enemy bird legs and feet.
+            ctx.strokeStyle = "#c9a56f";
+            ctx.lineWidth = 3.2;
+            ctx.lineCap = "round";
+            ctx.beginPath();
+            ctx.moveTo(-7, 11);
+            ctx.lineTo(-17, 20);
+            ctx.lineTo(-24, 18);
+            ctx.moveTo(4, 12);
+            ctx.lineTo(-5, 22);
+            ctx.lineTo(-11, 20);
+            ctx.stroke();
+
+            ctx.strokeStyle = "#c9a56f";
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(-24, 18);
+            ctx.lineTo(-29, 16);
+            ctx.moveTo(-24, 18);
+            ctx.lineTo(-28, 21);
+            ctx.moveTo(-11, 20);
+            ctx.lineTo(-16, 18);
+            ctx.moveTo(-11, 20);
+            ctx.lineTo(-15, 23);
+            ctx.stroke();
+          }
+
+          if (enemyBuzzard) {
+            // Enemy bird rear wing drawn behind the body.
+            ctx.save();
+            ctx.translate(-2, -4);
+            ctx.rotate(-7 * Math.PI / 180);
+
+            ctx.fillStyle = mountColor;
+            ctx.beginPath();
+            ctx.moveTo(0, -4);
+            ctx.lineTo(-52, -22);
+            ctx.lineTo(-26, 5);
+            ctx.lineTo(-57, 28);
+            ctx.lineTo(2, 18);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+            ctx.beginPath();
+            ctx.moveTo(-2, -2);
+            ctx.lineTo(-40, -14);
+            ctx.lineTo(-19, 5);
+            ctx.lineTo(-43, 19);
+            ctx.lineTo(-2, 14);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+
+          // Main bird body.
+          ctx.fillStyle = mountColor;
+          ctx.beginPath();
+          ctx.ellipse(0, sleekOstrich ? 0 : 2, sleekOstrich ? 27 : 24, sleekOstrich ? 13 : 16, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Rear wing.
+          if (!enemyBuzzard) {
+            ctx.beginPath();
+            ctx.moveTo(sleekOstrich ? -10 : -12, sleekOstrich ? -4 : -5);
+            ctx.lineTo(sleekOstrich ? -40 : -50, sleekOstrich ? -14 : -24);
+            ctx.lineTo(sleekOstrich ? -28 : -30, sleekOstrich ? -3 : -1);
+            ctx.lineTo(sleekOstrich ? -40 : -50, sleekOstrich ? 8 : 20);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.18)";
+            ctx.beginPath();
+            ctx.ellipse(sleekOstrich ? -10 : -12, sleekOstrich ? -3 : -4, sleekOstrich ? 13 : 17, sleekOstrich ? 5.5 : 9, -0.2, 0, Math.PI * 2);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // Neck and head.
+          ctx.fillStyle = mountColor;
+          ctx.fillRect(sleekOstrich ? 9 : 8, sleekOstrich ? -24 : -18, sleekOstrich ? 6 : 7, sleekOstrich ? 30 : 22);
+          ctx.beginPath();
+          ctx.ellipse(sleekOstrich ? 22 : 20, sleekOstrich ? -29 : -22, sleekOstrich ? 7 : 8, sleekOstrich ? 6 : 8, 0, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (enemyBuzzard) {
+            // Enemy bird eye highlight.
+            ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+            ctx.beginPath();
+            ctx.ellipse(18, -25, 4.2, 3.4, -0.25, 0, Math.PI * 2);
+            ctx.fill();
+          }
+
+          // Beak.
+          ctx.fillStyle = mountType === "buzzard" ? "#c9a56f" : "#f8c768";
+          ctx.beginPath();
+          ctx.moveTo(sleekOstrich ? 29 : 27, sleekOstrich ? -28 : -22);
+          ctx.lineTo(sleekOstrich ? 43 : 39, sleekOstrich ? -25 : -19);
+          ctx.lineTo(sleekOstrich ? 29 : 27, sleekOstrich ? -21 : -14);
+          ctx.closePath();
+          ctx.fill();
+
+          if (enemyBuzzard) {
+            // Enemy bird eye and crest details.
+            ctx.fillStyle = "#130d0c";
+            ctx.beginPath();
+            ctx.arc(23, -24, 1.7, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        if (mountType === "pterodactyl") {
+          const beakOpen = (character.attackTimer || 0) > 0;
+          // Pterodactyl neck and head.
+          ctx.fillStyle = mountColor;
+          ctx.beginPath();
+          ctx.moveTo(4, 8);
+          ctx.lineTo(8, -18);
+          ctx.lineTo(19, -18);
+          ctx.lineTo(16, 9);
+          ctx.closePath();
+          ctx.fill();
+          ctx.beginPath();
+          ctx.ellipse(31, -27, 16, 11, -0.32, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Pterodactyl beak.
+          ctx.fillStyle = "#c78c49";
+          if (beakOpen) {
+            ctx.beginPath();
+            ctx.moveTo(37, -31);
+            ctx.lineTo(68, -25);
+            ctx.lineTo(39, -18);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(36, -16);
+            ctx.lineTo(66, -5);
+            ctx.lineTo(38, 0);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = "rgba(92, 53, 25, 0.58)";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(37, -17);
+            ctx.lineTo(57, -11);
+            ctx.stroke();
+          } else {
+            ctx.beginPath();
+            ctx.moveTo(37, -26);
+            ctx.lineTo(69, -19);
+            ctx.lineTo(38, -7);
+            ctx.closePath();
+            ctx.fill();
+          }
+
+          // Eye and brow accents.
+          ctx.fillStyle = "#120913";
+          ctx.beginPath();
+          ctx.arc(35, -29, 3.2, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.strokeStyle = "#f2b84f";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(28, -35);
+          ctx.lineTo(37, -31);
+          ctx.stroke();
+
+          ctx.strokeStyle = "rgba(22, 15, 29, 0.75)";
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.moveTo(15, -25);
+          ctx.lineTo(27, -37);
+          ctx.lineTo(35, -29);
+          ctx.moveTo(12, 10);
+          ctx.lineTo(8, 22);
+          ctx.lineTo(15, 18);
+          ctx.stroke();
+        }
+      }
+
+      if (mountType !== "pterodactyl" && !hideRider && !usesHeroBirdSprite) {
+        const riderSeatX = mountType === "buzzard" ? -12 : -4;
+        const riderSeatY = -2;
+        ctx.save();
+        ctx.translate(riderSeatX, riderSeatY);
+        // Rider torso and helmet.
+        ctx.fillStyle = riderColor;
+        ctx.fillRect(-1, -38, 10, 20);
+        ctx.fillRect(-4, -24, 18, 18);
+        if (mountType === "buzzard") {
+          // Enemy rider visor / mask.
+          ctx.fillStyle = "#130d0c";
+          ctx.beginPath();
+          ctx.moveTo(4.8, -35.4);
+          ctx.lineTo(10.4, -34.7);
+          ctx.lineTo(10.1, -31.1);
+          ctx.lineTo(4.5, -32.3);
+          ctx.closePath();
+          ctx.fill();
+
+          if (!riderOnly) {
+            ctx.save();
+            ctx.translate(12, -6);
+            ctx.rotate(-7 * Math.PI / 180);
+
+            // Enemy bird front wing drawn over the rider.
+            ctx.fillStyle = mountColor;
+            ctx.beginPath();
+            ctx.moveTo(0, -4);
+            ctx.lineTo(-52, -22);
+            ctx.lineTo(-26, 5);
+            ctx.lineTo(-57, 28);
+            ctx.lineTo(2, 18);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.14)";
+            ctx.beginPath();
+            ctx.moveTo(-2, -2);
+            ctx.lineTo(-40, -14);
+            ctx.lineTo(-19, 5);
+            ctx.lineTo(-43, 19);
+            ctx.lineTo(-2, 14);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+        if (riderOnly) {
+          // Rider legs for the egg-respawn / rider-only pose.
+          ctx.strokeStyle = riderColor;
+          ctx.lineWidth = 4;
+          ctx.beginPath();
+          ctx.moveTo(1, -6);
+          ctx.lineTo(-5, 12);
+          ctx.moveTo(8, -6);
+          ctx.lineTo(14, 12);
+          ctx.stroke();
+        }
+
+        if (!hideLance) {
+          // Rider lance and tip.
+          ctx.strokeStyle = riderColor;
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(8, -16);
+          ctx.lineTo(58, -24 - character.lanceRaise * 0.55);
+          ctx.stroke();
+
+          ctx.fillStyle = "#ffe9a8";
+          ctx.beginPath();
+          ctx.moveTo(59, -24 - character.lanceRaise * 0.55);
+          ctx.lineTo(72, -27 - character.lanceRaise * 0.55);
+          ctx.lineTo(65, -18 - character.lanceRaise * 0.55);
+          ctx.closePath();
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      if (options.showBadge === true) {
+        ctx.save();
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = "rgba(10, 14, 22, 0.68)";
+        ctx.beginPath();
+        ctx.arc(character.x + badgeOffset, character.y - badgeOffset, badgeRadius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.78)";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = "#ffffff";
+        ctx.font = `bold ${Math.max(10, Math.round(14 * drawScale))}px Arial`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(String(character.gameHeight || 1), character.x + badgeOffset, character.y - badgeOffset - 0.5);
+        ctx.restore();
+      }
+    }
+
+    function drawEgg(egg) {
+      const hatchElapsed = egg.hatching ? EGG_RESCUE_DURATION - egg.hatchTimer : 0;
+      const rescueBirdStart = EGG_KNIGHT_EMERGE_DURATION + EGG_KNIGHT_SOLO_DURATION;
+      const lavaSink = egg.inLava ? Math.min(1, egg.lavaSink / 1.2) : 0;
+      const emergeProgress = egg.hatching
+        ? clamp(hatchElapsed / EGG_KNIGHT_EMERGE_DURATION, 0, 1)
+        : 1;
+      const riderAlpha = egg.hatching
+        ? hatchElapsed < EGG_KNIGHT_EMERGE_DURATION
+          ? clamp(0.2 + emergeProgress * 0.8, 0, 1)
+          : 1
+        : 0;
+      const riderYOffset = egg.hatching
+        ? lerp(18, 8, emergeProgress)
+        : 8;
+      const riderScale = egg.hatching
+        ? lerp(0.45, 1, emergeProgress)
+        : 1;
+      const eggAlpha = egg.hatching
+        ? hatchElapsed < EGG_KNIGHT_EMERGE_DURATION
+          ? clamp(1 - emergeProgress, 0, 1)
+          : 0
+        : 1 - lavaSink * 0.85;
+
+      if (egg.rescueBird && hatchElapsed >= rescueBirdStart) {
+        drawCharacter({
+          x: egg.rescueBird.x,
+          y: egg.rescueBird.y,
+          width: 72 * CHARACTER_SCALE,
+          height: 58 * CHARACTER_SCALE,
+          drawScale: CHARACTER_SCALE,
+          facing: egg.rescueBird.facing,
+          onGround: false,
+          vx: egg.rescueBird.vx,
+          warpFadeTimer: 0,
+          lanceRaise: egg.rescueBird.lanceRaise || 0,
+          alive: true
+        }, egg.rescueBird.riderColor, egg.rescueBird.mountColor, "buzzard", {
+          alphaMultiplier: 0.95,
+          hideRider: true,
+          showBadge: false
+        });
+      }
+
+      if (egg.hatching) {
+        drawCharacter({
+          x: egg.x,
+          y: egg.y + riderYOffset,
+          width: 72 * CHARACTER_SCALE,
+          height: 58 * CHARACTER_SCALE,
+          drawScale: CHARACTER_SCALE * riderScale,
+          facing: egg.riderFacing || 1,
+          onGround: true,
+          vx: 0,
+          warpFadeTimer: 0,
+          lanceRaise: 0,
+          alive: true
+        }, egg.riderColor, "#5b4740", "buzzard", {
+          alphaMultiplier: riderAlpha,
+          riderOnly: true,
+          hideLance: true,
+          showBadge: false
+        });
+      }
+
+      ctx.save();
+      ctx.translate(egg.x, egg.y);
+      ctx.globalAlpha = eggAlpha;
+      if (egg.inLava) {
+        ctx.scale(Math.max(0.7, 1 - lavaSink * 0.2), Math.max(0.55, 1 - lavaSink * 0.35));
+      }
+      ctx.fillStyle = "#fff5d2";
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 16, 20, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#e1c97a";
+      ctx.beginPath();
+      ctx.ellipse(0, 3, 11, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawParticles() {
+      for (const particle of state.particles) {
+        ctx.globalAlpha = Math.max(0, particle.life);
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawTransportHalo(character) {
+      if (character.kind !== "player" || character.warpFadeTimer <= 0) {
+        return;
+      }
+      const progress = clamp(character.warpFadeTimer / 4, 0, 1);
+      const pulse = 0.84 + Math.sin(state.waveTimer * 10) * 0.08;
+      ctx.save();
+      ctx.globalAlpha = 0.2 + progress * 0.32;
+      ctx.translate(character.x, character.y - 8);
+      ctx.scale(1 + progress * 0.1, pulse);
+      const halo = ctx.createRadialGradient(0, -8, 20, 0, -2, 72);
+      halo.addColorStop(0, "rgba(255, 244, 186, 0.88)");
+      halo.addColorStop(0.45, "rgba(255, 217, 112, 0.38)");
+      halo.addColorStop(1, "rgba(255, 217, 112, 0)");
+      ctx.fillStyle = halo;
+      ctx.beginPath();
+      ctx.ellipse(0, -2, 76, 50, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.globalAlpha = 0.45 + progress * 0.3;
+      ctx.strokeStyle = "rgba(255, 238, 173, 0.82)";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 58, 34, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawScene() {
+      drawSky();
+      drawLava();
+      drawIsland();
+      for (const platform of state.platforms) {
+        drawPlatform(platform);
+      }
+      for (const pad of state.energyPads) {
+        drawEnergyPad(pad);
+      }
+      drawLavaTrollRetreat();
+
+      const renderables = [];
+      for (const player of state.players) {
+        if (player.active && (player.alive || player.respawnTimer > 0)) {
+          renderables.push(player);
+        }
+      }
+      for (const enemy of state.enemies) {
+        if (enemy.alive) {
+          renderables.push(enemy);
+        }
+      }
+      for (const pterodactyl of state.pterodactyls) {
+        renderables.push(pterodactyl);
+      }
+
+      renderables.sort((a, b) => a.y - b.y);
+
+      for (const character of renderables) {
+        drawLavaTrollGrab(character);
+        drawTransportHalo(character);
+        if (character.kind === "player") {
+          drawCharacter(character, character.knightColor, character.mountColor, character.id === 1 ? "ostrich" : "stork");
+        } else if (character.kind === "enemy") {
+          drawCharacter(character, character.type.color, character.type.mountColor, "buzzard");
+        } else {
+          drawCharacter(character, "#b8a4db", "#7c6899", "pterodactyl");
+        }
+      }
+
+      for (const egg of state.eggs) {
+        drawEgg(egg);
+      }
+
+      drawParticles();
+      drawOverlay();
+    }
+
+    function drawTitleScreen() {
+      drawSky();
+      drawLava();
+      drawIsland();
+      const platforms = createPlatforms();
+      for (const platform of platforms) {
+        drawPlatform(platform);
+      }
+      for (const pad of createEnergyPads(platforms)) {
+        drawEnergyPad(pad);
+      }
+
+      ctx.fillStyle = "rgba(6, 7, 14, 0.68)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+
+    function drawOverlay() {
+      ctx.fillStyle = "rgba(255, 240, 210, 0.8)";
+      ctx.font = "bold 15px Trebuchet MS";
+      ctx.fillText(`Wave ${state.wave}`, 18, 28);
+      ctx.fillText(`Score ${state.score}`, 18, 52);
+      ctx.fillText(`Time ${formatWaveTimer(state.waveTimer)}`, 18, 76);
+
+      const recoveringPlayer = state.players.find((player) => player.active && player.alive && player.invuln > 0);
+      if (recoveringPlayer) {
+        ctx.fillStyle = "rgba(255, 248, 197, 0.86)";
+        ctx.fillText(`${recoveringPlayer.name} recovering...`, 18, 100);
+      }
+
+      if (state.over) {
+        ctx.fillStyle = "rgba(10, 10, 18, 0.58)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fff0dc";
+        ctx.font = "bold 64px Trebuchet MS";
+        ctx.textAlign = "center";
+        ctx.fillText("Game Over", canvas.width * 0.5, canvas.height * 0.42);
+        ctx.font = "24px Trebuchet MS";
+        ctx.fillText("Press Restart Quest to ride again.", canvas.width * 0.5, canvas.height * 0.48);
+        ctx.textAlign = "left";
+      } else if (state.paused) {
+        ctx.fillStyle = "rgba(10, 10, 18, 0.42)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "#fff0dc";
+        ctx.font = "bold 52px Trebuchet MS";
+        ctx.textAlign = "center";
+        ctx.fillText("Paused", canvas.width * 0.5, canvas.height * 0.44);
+        ctx.font = "22px Trebuchet MS";
+        ctx.fillText("Press P to resume.", canvas.width * 0.5, canvas.height * 0.49);
+        ctx.textAlign = "left";
+      } else if (state.awaitingStart) {
+        const introAlpha = clamp(state.introTimer / 4, 0, 1);
+        ctx.fillStyle = "rgba(10, 10, 18, 0.38)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = `rgba(255, 240, 220, ${0.72 + introAlpha * 0.28})`;
+        ctx.font = "bold 54px Trebuchet MS";
+        ctx.textAlign = "center";
+        ctx.fillText(state.introTimer < 4 ? "Charging In" : "Ready To Ride", canvas.width * 0.5, canvas.height * 0.42);
+        ctx.font = "22px Trebuchet MS";
+        ctx.fillText(
+          state.introTimer < 4 ? "Hold steady while the transporter locks in." : "Press A, D, or G to start the wave.",
+          canvas.width * 0.5,
+          canvas.height * 0.48
+        );
+        ctx.textAlign = "left";
+      }
+    }
+
+    function frame(timestamp) {
+      if (!lastFrame) {
+        lastFrame = timestamp;
+      }
+      const dt = Math.min(0.033, (timestamp - lastFrame) / 1000);
+      lastFrame = timestamp;
+      if (titleScreenActive) {
+        titleTimer += dt;
+        if (titleFadeActive) {
+          titleFadeTimer += dt;
+        }
+        if (!titleMusicAttempted) {
+          tryStartTitleMusic();
+        }
+        setLoopingSound(transporterSound, false);
+        setLoopingSound(platformTouchSound, false);
+        setLoopingSound(gameplayMusic, false);
+        drawTitleScreen();
+        const titleOpacity = titleFadeActive ? 1 - titleFadeTimer / TITLE_FADE_DURATION : 1;
+        updateTitleOverlay(titleOpacity, true);
+        if (titleFadeActive && titleFadeTimer >= TITLE_FADE_DURATION) {
+          beginGameFromTitle();
+        }
+      } else if (state) {
+        updateTitleOverlay(0, false);
+        update(dt);
+        drawScene();
+      }
+      justPressedKeys.clear();
+      requestAnimationFrame(frame);
+    }
+
+    function handleJoinHotkey(event) {
+      if (event.code === "Digit1") {
+        event.preventDefault();
+        if (!state) {
+          return;
+        }
+        state.players[0].lives += 1;
+        updateHud();
+        setStatus("Yellow Knight gained an extra life.", "good");
+      } else if (event.code === "Digit2") {
+        event.preventDefault();
+        if (!state) {
+          return;
+        }
+        const player2 = state.players[1];
+        if (!player2.active) {
+          joinPlayerTwo();
+        } else {
+          player2.lives += 1;
+          updateHud();
+          setStatus("Blue Knight gained an extra life.", "good");
+        }
+      } else if (event.code === "KeyT") {
+        event.preventDefault();
+        toggleFriendlyFire();
+      } else if (event.code === "KeyP") {
+        event.preventDefault();
+        togglePause();
+      } else if (event.code === "KeyR") {
+        event.preventDefault();
+        startGame();
+      }
+    }
+
+    function maybeStartFromHeroKey(event) {
+      if (!state || !state.awaitingStart) {
+        return;
+      }
+      const heroControls = state.players[0].controls;
+      if ([heroControls.left, heroControls.right, heroControls.flap].includes(event.code)) {
+        beginWaveGameplay();
+      }
+    }
+
+    function maybeStartFromRespawnKey() {
+      if (!state || state.awaitingStart || state.over || state.paused) {
+        return;
+      }
+      const respawningPlayers = state.players.filter((player) =>
+        player.active &&
+        player.alive &&
+        player.warpFadeTimer > 0
+      );
+      if (!respawningPlayers.length) {
+        return;
+      }
+      for (const player of respawningPlayers) {
+        player.warpFadeTimer = 0;
+      }
+      setLoopingSound(transporterSound, false);
+      setStatus("Respawn complete. Back in the fight.", "good");
+    }
+
+    window.addEventListener("keydown", (event) => {
+      if (titleScreenActive) {
+        if (event.target === volumeSlider || event.target === titleVolumeSlider) {
+          return;
+        }
+        event.preventDefault();
+        if (!titleFadeActive) {
+          titleFadeActive = true;
+          titleFadeTimer = 0;
+          keys.clear();
+          justPressedKeys.clear();
+        }
+        return;
+      }
+      if (!keys.has(event.code)) {
+        justPressedKeys.add(event.code);
+      }
+      keys.add(event.code);
+      if (state?.paused) {
+        if (event.code === "KeyP") {
+          event.preventDefault();
+          togglePause();
+        }
+        return;
+      }
+      maybeStartFromHeroKey(event);
+      maybeStartFromRespawnKey();
+      handleJoinHotkey(event);
+    });
+
+    window.addEventListener("keyup", (event) => {
+      keys.delete(event.code);
+    });
+
+    restartBtn.addEventListener("click", startGame);
+    titleBtn.addEventListener("click", returnToTitleScreen);
+    joinBtn.addEventListener("click", joinPlayerTwo);
+    duelBtn.addEventListener("click", toggleFriendlyFire);
+    panelToggleBtn.addEventListener("click", toggleSidebar);
+    volumeSlider.addEventListener("input", (event) => {
+      setMasterVolume(Number(event.target.value) / 100);
+      if (titleScreenActive) {
+        tryStartTitleMusic();
+      }
+    });
+    titleVolumeSlider.addEventListener("input", (event) => {
+      setMasterVolume(Number(event.target.value) / 100);
+      if (titleScreenActive) {
+        tryStartTitleMusic();
+      }
+    });
+    titleVolumeSlider.addEventListener("change", () => {
+      if (titleScreenActive) {
+        releaseTitleSliderFocus();
+      }
+    });
+    titleVolumeSlider.addEventListener("pointerup", () => {
+      if (titleScreenActive) {
+        releaseTitleSliderFocus();
+      }
+    });
+
+    setMasterVolume(0);
+    updateTitleOverlay(1, true);
+    tryStartTitleMusic();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

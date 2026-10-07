@@ -1,0 +1,1921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skyfire Jets</title>
+  <style>
+    :root {
+      --sky-top: #050c18;
+      --sky-mid: #0b1a31;
+      --sky-bottom: #142b46;
+      --panel: rgba(7, 18, 34, 0.86);
+      --panel-line: rgba(255, 255, 255, 0.16);
+      --text: #eef7ff;
+      --muted: #b7d1eb;
+      --accent: #bcd9ff;
+      --accent-strong: #ffd166;
+      --danger: #ff7b72;
+      --success: #92f7a5;
+      --shadow: 0 30px 80px rgba(11, 24, 46, 0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Trebuchet MS", "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 24%),
+        linear-gradient(180deg, var(--sky-top) 0%, var(--sky-mid) 48%, var(--sky-bottom) 100%);
+    }
+
+    .shell {
+      width: min(1180px, calc(100% - 1.5rem));
+      margin: 0 auto;
+      padding: 1rem 0 1.8rem;
+      display: grid;
+      gap: 1rem;
+    }
+
+    .frame {
+      display: grid;
+      grid-template-columns: minmax(203px, 260px) minmax(0, 1fr);
+      gap: 1rem;
+      align-items: start;
+    }
+
+    .panel {
+      border-radius: 28px;
+      border: 1px solid var(--panel-line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .sidebar {
+      padding: 0.88rem;
+      display: grid;
+      gap: 0.63rem;
+    }
+
+    .eyebrow {
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      font-size: 0.63rem;
+      font-weight: 700;
+      font-family: Arial, sans-serif;
+    }
+
+    h1 {
+      margin: 0.1rem 0 0;
+      font-size: clamp(1.25rem, 2.4vw, 2.3rem);
+      line-height: 0.98;
+    }
+
+    .copy,
+    .status,
+    .controls {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.35;
+      font-family: Arial, sans-serif;
+    }
+
+    .stats {
+      display: grid;
+      gap: 0.48rem;
+    }
+
+    .stat {
+      padding: 0.63rem 0.69rem;
+      border-radius: 15px;
+      border: 1px solid var(--panel-line);
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .label {
+      display: block;
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--accent);
+      font-family: Arial, sans-serif;
+    }
+
+    .value {
+      display: block;
+      margin-top: 0.23rem;
+      font-size: 1.19rem;
+      color: var(--text);
+      font-weight: 700;
+    }
+
+    .button {
+      border: 0;
+      border-radius: 999px;
+      padding: 0.69rem 0.88rem;
+      font: inherit;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: #14314d;
+      background: linear-gradient(135deg, #fff0c2, var(--accent-strong));
+      cursor: pointer;
+      box-shadow: 0 12px 28px rgba(255, 209, 102, 0.28);
+      transition: transform 120ms ease, filter 120ms ease;
+    }
+
+    .button:hover {
+      filter: brightness(1.03);
+      transform: translateY(-1px);
+    }
+
+    .play-area {
+      padding: 1rem;
+      display: grid;
+      gap: 0.8rem;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.75rem;
+      align-items: center;
+      flex-wrap: wrap;
+      padding: 0 0.2rem;
+    }
+
+    .status {
+      min-height: 1.5em;
+    }
+
+    .status.win {
+      color: var(--success);
+    }
+
+    .status.lose {
+      color: var(--danger);
+    }
+
+    .arena {
+      overflow: hidden;
+      border-radius: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: linear-gradient(180deg, #091426 0%, #15314f 55%, #2d4f73 100%);
+    }
+
+    canvas {
+      width: 100%;
+      height: auto;
+      display: block;
+      aspect-ratio: 8 / 5;
+      touch-action: none;
+    }
+
+    .controls code {
+      color: var(--text);
+      font-family: Consolas, monospace;
+      font-size: 0.9em;
+    }
+
+    @media (max-width: 960px) {
+      .frame {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="frame">
+      <aside class="panel sidebar">
+        <div>
+          <p class="eyebrow">Arcade Dogfight</p>
+          <h1>Skyfire Jets</h1>
+          <p class="copy">Fly a fighter jet across a moonlit sky, dodge incoming fire, and bring down every enemy plane before they can shoot you out of the air.</p>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="label">Hero Hull</span>
+            <span class="value" id="health">3</span>
+          </div>
+          <div class="stat">
+            <span class="label">Missiles</span>
+            <span class="value" id="missiles">1</span>
+          </div>
+          <div class="stat">
+            <span class="label">Enemies Left</span>
+            <span class="value" id="enemies">1</span>
+          </div>
+          <div class="stat">
+            <span class="label">Shots Fired</span>
+            <span class="value" id="shots">0</span>
+          </div>
+          <div class="stat">
+            <span class="label">Time</span>
+            <span class="value" id="timer">0.0s</span>
+          </div>
+        </div>
+
+        <button class="button" id="restart-btn" type="button">Restart Sortie</button>
+        <button class="button" id="missiles-toggle-btn" type="button">Missiles: Off</button>
+
+        <p class="controls">
+          <strong>Controls:</strong>
+          <code>Up</code> or <code>W</code> to speed up,
+          <code>Down</code> to slow down,
+          <code>Left</code> or <code>A</code> to turn left,
+          <code>Right</code> or <code>D</code> to turn right,
+          <code>Space</code> to fire,
+          <code>E</code> to launch a missile,
+          <code>F</code> to drop rear flares,
+          <code>P</code> to pause,
+          <code>R</code> to restart at any time.
+          Shoot down every enemy plane before they hit you or ram you.
+        </p>
+      </aside>
+
+      <section class="panel play-area">
+        <div class="hud">
+          <p class="status" id="status">Press any flight key to launch level 1.</p>
+        </div>
+        <div class="arena">
+          <canvas id="game" width="1440" height="900" aria-label="Skyfire Jets game area" tabindex="0"></canvas>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const healthEl = document.getElementById("health");
+    const missilesEl = document.getElementById("missiles");
+    const enemiesEl = document.getElementById("enemies");
+    const shotsEl = document.getElementById("shots");
+    const timerEl = document.getElementById("timer");
+    const statusEl = document.getElementById("status");
+    const restartBtn = document.getElementById("restart-btn");
+    const missilesToggleBtn = document.getElementById("missiles-toggle-btn");
+
+    const shootSound = new Audio("../sounds/blaster-shot.mp3");
+    const boomSound = new Audio("../sounds/boom.mp3");
+    const hitSound = new Audio("../sounds/rockhit.mp3");
+    const bounceSound = new Audio("../sounds/jellybounce.mp3");
+    const healSound = new Audio("../sounds/energy3.mp3");
+    const engineHum = new Audio("../sounds/engine-hum.mp3");
+    const planeImage = new Image();
+    planeImage.src = "./plane_trans.png";
+    const planeTintCanvas = document.createElement("canvas");
+    const planeTintCtx = planeTintCanvas.getContext("2d");
+
+    shootSound.volume = 0.156;
+    boomSound.volume = 0.35;
+    hitSound.volume = 0.26;
+    bounceSound.volume = 0.22;
+    healSound.volume = 0.26;
+    engineHum.volume = 0.12;
+    engineHum.loop = true;
+
+    const keys = {
+      left: false,
+      right: false,
+      up: false,
+      down: false
+    };
+
+    const clouds = Array.from({ length: 8 }, (_, index) => ({
+      x: 90 + index * 120,
+      y: 70 + (index % 4) * 105,
+      speed: 8 + (index % 3) * 5,
+      scale: 0.8 + (index % 4) * 0.15
+    }));
+    const stars = Array.from({ length: 55 }, () => ({
+      x: randomBetween(0, canvas.width),
+      y: randomBetween(18, canvas.height * 0.8),
+      size: randomBetween(0.8, 2.6),
+      speed: randomBetween(0.85, 2.6),
+      twinkle: randomBetween(0, Math.PI * 2),
+      alphaBase: randomBetween(0.25, 0.72)
+    }));
+
+    let lastFrame = 0;
+    let audioPrimed = false;
+    let state;
+    let currentLevel = 1;
+    let levelAdvanceTimeout = null;
+    let missilesEnabled = false;
+
+    function pickPlaneSpawn(xMin, xMax, yMin, yMax, radius, blockedEntities = []) {
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        const candidate = {
+          x: randomBetween(xMin, xMax),
+          y: randomBetween(yMin, yMax)
+        };
+        const overlaps = blockedEntities.some((entity) => {
+          const delta = getWrappedDelta(candidate.x, candidate.y, entity.x, entity.y);
+          return Math.hypot(delta.dx, delta.dy) < radius + entity.radius + 36;
+        });
+
+        if (!overlaps) {
+          return candidate;
+        }
+      }
+
+      return {
+        x: (xMin + xMax) * 0.5,
+        y: (yMin + yMax) * 0.5
+      };
+    }
+
+    function createHero(blockedEntities = []) {
+      const radius = 9;
+      const spawn = pickPlaneSpawn(canvas.width * 0.06, canvas.width * 0.94, canvas.height * 0.08, canvas.height * 0.92, radius, blockedEntities);
+      return {
+        x: spawn.x,
+        y: spawn.y,
+        vx: 0,
+        vy: 0,
+        angle: 0,
+        radius,
+        speed: 150,
+        health: 3,
+        shootCooldown: 0,
+        missiles: 0,
+        missileCooldown: 0,
+        flareCooldown: 0,
+        flash: 0,
+        blimpBounceCooldown: 0,
+        planeCollisionCooldown: 0
+      };
+    }
+
+    function createEnemies(enemyCount, blockedEntities = []) {
+      const enemies = [];
+
+      for (let index = 0; index < enemyCount; index += 1) {
+        const radius = 9.5;
+        const spawn = pickPlaneSpawn(
+          canvas.width * 0.06,
+          canvas.width * 0.94,
+          canvas.height * 0.08,
+          canvas.height * 0.92,
+          radius,
+          blockedEntities.concat(enemies)
+        );
+        enemies.push({
+          id: index + 1,
+          x: spawn.x,
+          y: spawn.y,
+          vx: 0,
+          vy: 0,
+          angle: Math.PI,
+          radius,
+          speed: 168 + (index % 4) * 7,
+          speedTargetOffset: randomBetween(-18, 18),
+          speedShiftTimer: randomBetween(1.2, 2.8),
+          health: 3,
+          missiles: 3,
+          missileCooldown: 2.8 + (index % 4) * 0.35,
+          shootCooldown: 0.4 + (index % 5) * 0.12,
+          planeCollisionCooldown: 0,
+          flash: 0,
+          dead: false,
+          color: "#ef8354",
+          strafeSeed: index * 0.85 + (index % 3) * Math.PI * 0.35,
+          steerTargetX: spawn.x,
+          steerTargetY: spawn.y
+        });
+      }
+
+      return enemies;
+    }
+
+    function createBlimps() {
+      const firstRadius = 44;
+      const firstSpawn = pickPlaneSpawn(
+        canvas.width * 0.18,
+        canvas.width * 0.82,
+        canvas.height * 0.16,
+        canvas.height * 0.78,
+        firstRadius,
+        []
+      );
+      const secondRadius = 44;
+      const secondSpawn = pickPlaneSpawn(
+        canvas.width * 0.18,
+        canvas.width * 0.82,
+        canvas.height * 0.16,
+        canvas.height * 0.78,
+        secondRadius,
+        [{ x: firstSpawn.x, y: firstSpawn.y, radius: firstRadius }]
+      );
+      const thirdRadius = 44;
+      const thirdSpawn = pickPlaneSpawn(
+        canvas.width * 0.18,
+        canvas.width * 0.82,
+        canvas.height * 0.16,
+        canvas.height * 0.78,
+        thirdRadius,
+        [
+          { x: firstSpawn.x, y: firstSpawn.y, radius: firstRadius },
+          { x: secondSpawn.x, y: secondSpawn.y, radius: secondRadius }
+        ]
+      );
+
+      return [
+        {
+          x: firstSpawn.x,
+          y: firstSpawn.y,
+          vx: 24,
+          vy: 10,
+          radius: firstRadius,
+          angle: 0,
+          heading: randomBetween(0, Math.PI * 2),
+          speed: 28,
+          turnDrift: randomBetween(0, Math.PI * 2),
+          collisionCooldown: 0
+        },
+        {
+          x: secondSpawn.x,
+          y: secondSpawn.y,
+          vx: -18,
+          vy: 14,
+          radius: secondRadius,
+          angle: Math.PI,
+          heading: randomBetween(0, Math.PI * 2),
+          speed: 24,
+          turnDrift: randomBetween(0, Math.PI * 2),
+          collisionCooldown: 0
+        },
+        {
+          x: thirdSpawn.x,
+          y: thirdSpawn.y,
+          vx: 12,
+          vy: -22,
+          radius: thirdRadius,
+          angle: -Math.PI * 0.35,
+          heading: randomBetween(0, Math.PI * 2),
+          speed: 26,
+          turnDrift: randomBetween(0, Math.PI * 2),
+          collisionCooldown: 0
+        }
+      ];
+    }
+
+    function createRepairDrone(blockedEntities = []) {
+      const radius = 14;
+      const spawn = pickPlaneSpawn(
+        canvas.width * 0.08,
+        canvas.width * 0.92,
+        canvas.height * 0.12,
+        canvas.height * 0.88,
+        radius,
+        blockedEntities
+      );
+      return {
+        x: spawn.x,
+        y: spawn.y,
+        radius,
+        active: true,
+        respawnTimer: 0,
+        bobSeed: randomBetween(0, Math.PI * 2)
+      };
+    }
+
+    function createMoon() {
+      return {
+        x: randomBetween(120, canvas.width - 120),
+        y: randomBetween(90, canvas.height * 0.32)
+      };
+    }
+
+    function randomizeSkyLayout() {
+      for (const cloud of clouds) {
+        cloud.x = randomBetween(-80, canvas.width + 140);
+        cloud.y = randomBetween(60, canvas.height - 160);
+      }
+
+      return createMoon();
+    }
+
+    function formatEnemyObjective(enemyCount) {
+      return `${enemyCount} enemy ${enemyCount === 1 ? "jet" : "jets"}`;
+    }
+
+    function clearLevelAdvance() {
+      if (levelAdvanceTimeout !== null) {
+        clearTimeout(levelAdvanceTimeout);
+        levelAdvanceTimeout = null;
+      }
+    }
+
+    function syncMissileUi() {
+      missilesEl.textContent = missilesEnabled ? String(state?.hero?.missiles ?? 0) : "Off";
+      missilesToggleBtn.textContent = `Missiles: ${missilesEnabled ? "On" : "Off"}`;
+    }
+
+    function setMissilesEnabled(enabled) {
+      missilesEnabled = enabled;
+      if (state) {
+        if (!missilesEnabled) {
+          state.bullets = state.bullets.filter((bullet) => bullet.owner !== "heroMissile" && bullet.owner !== "enemyMissile");
+        }
+        syncMissileUi();
+      }
+    }
+
+    function loadLevel(level, introStatus) {
+      clearLevelAdvance();
+      const moon = randomizeSkyLayout();
+      const blimps = createBlimps();
+      const hero = createHero(blimps);
+      const enemyCount = level;
+      const enemies = createEnemies(enemyCount, blimps.concat(hero));
+      const repairDrone = createRepairDrone(blimps.concat(hero, enemies));
+      hero.missiles = enemyCount;
+      state = {
+        level,
+        enemyCount,
+        hero,
+        enemies,
+        blimps,
+        moon,
+        repairDrone,
+        bullets: [],
+        particles: [],
+        explosions: [],
+        lastEnemyMissileAt: -99,
+        elapsed: 0,
+        deathFadeAlpha: 1,
+        shotsFired: 0,
+        started: false,
+        paused: false,
+        over: false,
+        won: false
+      };
+
+      healthEl.textContent = String(state.hero.health);
+      enemiesEl.textContent = String(state.enemies.length);
+      shotsEl.textContent = "0";
+      timerEl.textContent = "0.0s";
+      syncMissileUi();
+      setStatus(introStatus ?? `Press any flight key to launch level ${level}.`, "");
+      canvas.focus();
+    }
+
+    function resetGame() {
+      currentLevel = 1;
+      loadLevel(1);
+    }
+
+    function setStatus(text, kind) {
+      statusEl.textContent = text;
+      statusEl.className = `status${kind ? ` ${kind}` : ""}`;
+    }
+
+    function startSortie() {
+      if (state.started || state.over || state.won) {
+        return;
+      }
+
+      state.started = true;
+      setStatus(`Level ${state.level}: eliminate ${formatEnemyObjective(state.enemyCount)}.`, "");
+    }
+
+    function togglePause() {
+      if (!state.started || state.over || state.won) {
+        return;
+      }
+
+      state.paused = !state.paused;
+      if (state.paused) {
+        setStatus("Paused. Press P to resume.", "");
+      } else {
+        setStatus(`Level ${state.level}: eliminate ${formatEnemyObjective(state.enemyCount)}.`, "");
+      }
+    }
+
+    function primeAudio() {
+      if (audioPrimed) {
+        return;
+      }
+
+      audioPrimed = true;
+      engineHum.play().catch(() => {});
+    }
+
+    function playSound(sound) {
+      if (!audioPrimed) {
+        return;
+      }
+
+      sound.currentTime = 0;
+      sound.play().catch(() => {});
+    }
+
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
+
+    function randomBetween(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    function wrapPosition(entity, padding = 0) {
+      if (entity.x < -padding) {
+        entity.x = canvas.width + padding;
+      } else if (entity.x > canvas.width + padding) {
+        entity.x = -padding;
+      }
+
+      if (entity.y < -padding) {
+        entity.y = canvas.height + padding;
+      } else if (entity.y > canvas.height + padding) {
+        entity.y = -padding;
+      }
+    }
+
+    function getWrappedDelta(fromX, fromY, toX, toY) {
+      let dx = toX - fromX;
+      let dy = toY - fromY;
+
+      if (Math.abs(dx) > canvas.width * 0.5) {
+        dx -= Math.sign(dx) * canvas.width;
+      }
+
+      if (Math.abs(dy) > canvas.height * 0.5) {
+        dy -= Math.sign(dy) * canvas.height;
+      }
+
+      return { dx, dy };
+    }
+
+    function spawnBurst(x, y, color, count) {
+      for (let index = 0; index < count; index += 1) {
+        const angle = Math.random() * Math.PI * 2;
+        const speed = randomBetween(40, 170);
+        state.particles.push({
+          x,
+          y,
+          vx: Math.cos(angle) * speed,
+          vy: Math.sin(angle) * speed,
+          life: randomBetween(0.35, 0.85),
+          size: randomBetween(2, 5),
+          color
+        });
+      }
+    }
+
+    function shootBullet(owner, x, y, angle, speed, color) {
+      state.bullets.push({
+        owner,
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        radius: owner === "hero" ? 4 : 4.5,
+        life: 2.55,
+        color,
+        alpha: 1
+      });
+      playSound(shootSound);
+    }
+
+    function explodeMissile(x, y, radius, owner) {
+      state.explosions.push({
+        x,
+        y,
+        maxRadius: radius,
+        life: 0.26,
+        maxLife: 0.26
+      });
+
+      spawnBurst(x, y, "#ffd7a2", 18);
+      playSound(boomSound);
+
+      if (owner === "heroMissile") {
+        for (const enemy of state.enemies) {
+          if (enemy.dead) {
+            continue;
+          }
+
+          const delta = getWrappedDelta(x, y, enemy.x, enemy.y);
+          if (Math.hypot(delta.dx, delta.dy) <= radius + enemy.radius) {
+            enemy.health -= 2;
+            enemy.flash = 0.16;
+            spawnBurst(enemy.x, enemy.y, "#ffe2a3", 12);
+            playSound(hitSound);
+            if (enemy.health <= 0) {
+              destroyEnemy(enemy);
+            }
+          }
+        }
+      } else if (owner === "enemyMissile") {
+        const delta = getWrappedDelta(x, y, state.hero.x, state.hero.y);
+        if (Math.hypot(delta.dx, delta.dy) <= radius + state.hero.radius) {
+          damageHero();
+          if (!state.over) {
+            damageHero();
+          }
+        }
+      }
+    }
+
+    function launchHeroMissile() {
+      if (!missilesEnabled || state.over || state.won || state.hero.missileCooldown > 0 || state.hero.missiles <= 0) {
+        return;
+      }
+
+      const hero = state.hero;
+      const missileSpeed = 580;
+      state.bullets.push({
+        owner: "heroMissile",
+        x: hero.x + Math.cos(hero.angle) * 26,
+        y: hero.y + Math.sin(hero.angle) * 26,
+        vx: Math.cos(hero.angle) * missileSpeed,
+        vy: Math.sin(hero.angle) * missileSpeed,
+        radius: 7,
+        life: 1,
+        color: "#ffd166",
+        alpha: 1,
+        explosionRadius: 20
+      });
+      hero.missiles -= 1;
+      hero.missileCooldown = 0.9;
+      syncMissileUi();
+      state.shotsFired += 1;
+      shotsEl.textContent = String(state.shotsFired);
+      playSound(shootSound);
+    }
+
+    function launchEnemyMissile(enemy) {
+      if (!missilesEnabled || state.over || state.won || enemy.missileCooldown > 0 || enemy.missiles <= 0) {
+        return;
+      }
+
+      const missileSpeed = 580;
+      state.bullets.push({
+        owner: "enemyMissile",
+        x: enemy.x + Math.cos(enemy.angle) * 24,
+        y: enemy.y + Math.sin(enemy.angle) * 24,
+        vx: Math.cos(enemy.angle) * missileSpeed,
+        vy: Math.sin(enemy.angle) * missileSpeed,
+        radius: 7,
+        life: 1,
+        color: "#ff9f68",
+        alpha: 1,
+        explosionRadius: 20
+      });
+      enemy.missiles -= 1;
+      enemy.missileCooldown = randomBetween(2.7, 4.1);
+      state.lastEnemyMissileAt = state.elapsed;
+      playSound(shootSound);
+    }
+
+    function dropFlares() {
+      if (state.over || state.won || state.hero.flareCooldown > 0) {
+        return;
+      }
+
+      const hero = state.hero;
+      const backAngle = hero.angle + Math.PI;
+      const spreadA = randomBetween(0.1, 0.38);
+      const spreadB = randomBetween(0.1, 0.38);
+      const speedA = randomBetween(130, 175.5);
+      const speedB = randomBetween(130, 175.5);
+      const launchOffsets = [
+        { angle: backAngle - spreadA, speed: speedA },
+        { angle: backAngle + spreadB, speed: speedB }
+      ];
+
+      for (const launch of launchOffsets) {
+        const angle = launch.angle;
+        state.bullets.push({
+          owner: "flare",
+          x: hero.x + Math.cos(backAngle) * 16,
+          y: hero.y + Math.sin(backAngle) * 16,
+          vx: Math.cos(angle) * launch.speed + hero.vx * 0.15,
+          vy: Math.sin(angle) * launch.speed + hero.vy * 0.15,
+          radius: 6,
+          life: 0.575,
+          color: "#ffb35c",
+          alpha: 1
+        });
+      }
+
+      hero.flareCooldown = 0.42;
+      playSound(shootSound);
+    }
+
+    function damageHero() {
+      if (state.over) {
+        return;
+      }
+
+      state.hero.health -= 1;
+      state.hero.flash = 0.18;
+      healthEl.textContent = String(Math.max(0, state.hero.health));
+      spawnBurst(state.hero.x, state.hero.y, "#fff2b4", 12);
+      playSound(hitSound);
+
+      if (state.hero.health <= 0) {
+        state.over = true;
+        setStatus("Game Over: your jet was shot down. Press R to restart the sortie.", "lose");
+        spawnBurst(state.hero.x, state.hero.y, "#ffb089", 26);
+        playSound(boomSound);
+      }
+    }
+
+    function destroyHeroByMissile() {
+      if (state.over) {
+        return;
+      }
+
+      state.hero.health = 0;
+      state.hero.flash = 0.22;
+      healthEl.textContent = "0";
+      state.over = true;
+      setStatus("Game Over: an enemy missile destroyed your jet. Press R to restart the sortie.", "lose");
+      spawnBurst(state.hero.x, state.hero.y, "#ffb089", 30);
+      playSound(boomSound);
+    }
+
+    function destroyEnemy(enemy) {
+      enemy.dead = true;
+      spawnBurst(enemy.x, enemy.y, "#ffd7a2", 24);
+      playSound(boomSound);
+    }
+
+    function respawnRepairDrone() {
+      const blockedEntities = [state.hero, ...state.enemies, ...state.blimps];
+      const nextDrone = createRepairDrone(blockedEntities);
+      state.repairDrone.x = nextDrone.x;
+      state.repairDrone.y = nextDrone.y;
+      state.repairDrone.radius = nextDrone.radius;
+      state.repairDrone.active = true;
+      state.repairDrone.respawnTimer = 0;
+      state.repairDrone.bobSeed = nextDrone.bobSeed;
+    }
+
+    function updateRepairDrone(dt) {
+      const drone = state.repairDrone;
+      if (!drone) {
+        return;
+      }
+
+      if (!drone.active) {
+        drone.respawnTimer = Math.max(0, drone.respawnTimer - dt);
+        if (drone.respawnTimer <= 0) {
+          respawnRepairDrone();
+        }
+        return;
+      }
+
+      if (state.hero.health >= 3) {
+        return;
+      }
+
+      const delta = getWrappedDelta(state.hero.x, state.hero.y, drone.x, drone.y);
+      if (Math.hypot(delta.dx, delta.dy) <= state.hero.radius + drone.radius) {
+        state.hero.health = 3;
+        state.hero.flash = Math.max(state.hero.flash, 0.12);
+        healthEl.textContent = String(state.hero.health);
+        spawnBurst(drone.x, drone.y, "#b9fff0", 14);
+        playSound(healSound);
+        drone.active = false;
+        drone.respawnTimer = 10;
+      }
+    }
+
+    function updateBlimps(dt) {
+      for (const blimp of state.blimps) {
+        blimp.heading += Math.sin(state.elapsed * 0.22 + blimp.turnDrift) * 0.24 * dt;
+        blimp.vx += (Math.cos(blimp.heading) * blimp.speed - blimp.vx) * Math.min(1, dt * 0.5);
+        blimp.vy += (Math.sin(blimp.heading) * blimp.speed - blimp.vy) * Math.min(1, dt * 0.5);
+        blimp.x += blimp.vx * dt;
+        blimp.y += blimp.vy * dt;
+        blimp.angle = Math.atan2(blimp.vy, blimp.vx);
+        wrapPosition(blimp, blimp.radius + 70);
+      }
+    }
+
+    function updateHero(dt) {
+      const hero = state.hero;
+      const turnInput = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      const throttleInput = (keys.up ? 1 : 0) - (keys.down ? 1 : 0);
+      const turnRate = 3.2;
+      const accel = 170;
+      const brake = 210;
+      const minSpeed = 80;
+      const maxSpeed = 341;
+
+      hero.angle += turnInput * turnRate * dt;
+
+      if (throttleInput > 0) {
+        hero.speed += accel * dt;
+      } else if (throttleInput < 0) {
+        hero.speed -= brake * dt;
+      } else {
+        hero.speed += (155 - hero.speed) * Math.min(1, dt * 1.8);
+      }
+
+      hero.speed = clamp(hero.speed, minSpeed, maxSpeed);
+      hero.vx = Math.cos(hero.angle) * hero.speed;
+      hero.vy = Math.sin(hero.angle) * hero.speed;
+
+      hero.x += hero.vx * dt;
+      hero.y += hero.vy * dt;
+      wrapPosition(hero, hero.radius + 16);
+
+      if (hero.blimpBounceCooldown <= 0) {
+        for (const blimp of state.blimps) {
+          const blimpDelta = getWrappedDelta(hero.x, hero.y, blimp.x, blimp.y);
+          const distance = Math.hypot(blimpDelta.dx, blimpDelta.dy);
+          const minDistance = hero.radius + blimp.radius;
+          if (distance < minDistance) {
+            const safeDistance = Math.max(distance, 0.001);
+            let normalX = -blimpDelta.dx / safeDistance;
+            let normalY = -blimpDelta.dy / safeDistance;
+            const overlap = minDistance - distance + 2;
+            let bounceVx = hero.vx;
+            let bounceVy = hero.vy;
+
+            if (Math.abs(normalX) + Math.abs(normalY) < 0.001) {
+              normalX = -Math.cos(hero.angle);
+              normalY = -Math.sin(hero.angle);
+            }
+
+            const incomingDot = hero.vx * normalX + hero.vy * normalY;
+
+            hero.x += normalX * overlap;
+            hero.y += normalY * overlap;
+            wrapPosition(hero, hero.radius + 16);
+
+            if (incomingDot < 0) {
+              bounceVx = hero.vx - 2 * incomingDot * normalX;
+              bounceVy = hero.vy - 2 * incomingDot * normalY;
+            } else {
+              bounceVx = normalX * hero.speed;
+              bounceVy = normalY * hero.speed;
+            }
+
+            hero.angle = Math.atan2(bounceVy, bounceVx);
+            hero.speed = clamp(Math.max(130, Math.hypot(bounceVx, bounceVy) * 0.92), 80, maxSpeed);
+            hero.vx = Math.cos(hero.angle) * hero.speed;
+            hero.vy = Math.sin(hero.angle) * hero.speed;
+            hero.flash = Math.max(hero.flash, 0.12);
+            hero.blimpBounceCooldown = 0.2;
+            spawnBurst(hero.x, hero.y, "#ffd2a6", 10);
+            playSound(bounceSound);
+            setStatus("You bounced off a blimp.", "");
+            break;
+          }
+        }
+      }
+
+      hero.shootCooldown = Math.max(0, hero.shootCooldown - dt);
+      hero.missileCooldown = Math.max(0, hero.missileCooldown - dt);
+      hero.flareCooldown = Math.max(0, hero.flareCooldown - dt);
+      hero.flash = Math.max(0, hero.flash - dt);
+      hero.blimpBounceCooldown = Math.max(0, hero.blimpBounceCooldown - dt);
+      hero.planeCollisionCooldown = Math.max(0, hero.planeCollisionCooldown - dt);
+    }
+
+    function updateEnemies(dt) {
+      for (const enemy of state.enemies) {
+        if (enemy.dead) {
+          continue;
+        }
+
+        const heroDelta = getWrappedDelta(enemy.x, enemy.y, state.hero.x, state.hero.y);
+        const dx = heroDelta.dx;
+        const dy = heroDelta.dy;
+        const distance = Math.hypot(dx, dy) || 1;
+        const heroLead = Math.min(0.55, distance / 540);
+        const predictedHeroX = enemy.x + dx + state.hero.vx * heroLead;
+        const predictedHeroY = enemy.y + dy + state.hero.vy * heroLead;
+        const strafe = Math.sin(state.elapsed * 2.2 + enemy.strafeSeed) * Math.min(95, distance * 0.18);
+        const sideX = -dy / distance;
+        const sideY = dx / distance;
+        let desiredX = predictedHeroX + sideX * strafe;
+        let desiredY = predictedHeroY + sideY * strafe;
+        let evadeBoost = 0;
+
+        if (distance < 340) {
+          const planeDodgeSide = Math.sign(state.hero.vx * dy - state.hero.vy * dx) || (enemy.id % 2 === 0 ? 1 : -1);
+          const planeDodgeWeight = 1 - distance / 340;
+          desiredX += sideX * planeDodgeSide * 280 * planeDodgeWeight - dx * 1.65 * planeDodgeWeight;
+          desiredY += sideY * planeDodgeSide * 280 * planeDodgeWeight - dy * 1.65 * planeDodgeWeight;
+          evadeBoost = Math.max(evadeBoost, 138 * planeDodgeWeight);
+        }
+
+        for (const bullet of state.bullets) {
+          if (bullet.owner !== "hero" && bullet.owner !== "heroMissile") {
+            continue;
+          }
+
+          const bulletDelta = getWrappedDelta(bullet.x, bullet.y, enemy.x, enemy.y);
+          const bulletDistance = Math.hypot(bulletDelta.dx, bulletDelta.dy);
+          if (bulletDistance > 230) {
+            continue;
+          }
+
+          const bulletSpeed = Math.hypot(bullet.vx, bullet.vy) || 1;
+          const bulletDirX = bullet.vx / bulletSpeed;
+          const bulletDirY = bullet.vy / bulletSpeed;
+          const towardEnemy = (bulletDelta.dx * bulletDirX + bulletDelta.dy * bulletDirY) / bulletDistance;
+          if (towardEnemy < 0.75) {
+            continue;
+          }
+
+          const dodgeSide = Math.sign(bulletDirX * bulletDelta.dy - bulletDirY * bulletDelta.dx) || (enemy.id % 2 === 0 ? 1 : -1);
+          const dodgeWeight = (1 - bulletDistance / 230) * (bullet.owner === "heroMissile" ? 1.4 : 1);
+          desiredX += -bulletDirY * dodgeSide * 170 * dodgeWeight;
+          desiredY += bulletDirX * dodgeSide * 170 * dodgeWeight;
+          desiredX += bulletDelta.dx * 0.2 * dodgeWeight;
+          desiredY += bulletDelta.dy * 0.2 * dodgeWeight;
+          evadeBoost = Math.max(evadeBoost, 58 * dodgeWeight);
+        }
+
+        enemy.steerTargetX += (desiredX - enemy.steerTargetX) * Math.min(1, dt * 2.4);
+        enemy.steerTargetY += (desiredY - enemy.steerTargetY) * Math.min(1, dt * 2.4);
+
+        const desiredAngle = Math.atan2(enemy.steerTargetY - enemy.y, enemy.steerTargetX - enemy.x);
+        let angleDelta = desiredAngle - enemy.angle;
+        while (angleDelta > Math.PI) {
+          angleDelta -= Math.PI * 2;
+        }
+        while (angleDelta < -Math.PI) {
+          angleDelta += Math.PI * 2;
+        }
+
+        const turnLimit = evadeBoost > 0 ? 3.1 * dt : 2.7 * dt;
+        enemy.angle += clamp(angleDelta, -turnLimit, turnLimit);
+
+        enemy.speedShiftTimer -= dt;
+        if (enemy.speedShiftTimer <= 0) {
+          enemy.speedTargetOffset = randomBetween(-34, 38);
+          enemy.speedShiftTimer = randomBetween(1.4, 3.6);
+        }
+
+        const preferredSpeed = (distance > 230 ? 220 : distance < 120 ? 145 : 185) + enemy.speedTargetOffset + evadeBoost;
+        enemy.speed += (preferredSpeed - enemy.speed) * Math.min(1, dt * 1.9);
+        enemy.vx = Math.cos(enemy.angle) * enemy.speed;
+        enemy.vy = Math.sin(enemy.angle) * enemy.speed;
+
+        enemy.x += enemy.vx * dt;
+        enemy.y += enemy.vy * dt;
+        wrapPosition(enemy, enemy.radius + 16);
+        enemy.shootCooldown = Math.max(0, enemy.shootCooldown - dt);
+        enemy.missileCooldown = Math.max(0, enemy.missileCooldown - dt);
+        enemy.planeCollisionCooldown = Math.max(0, enemy.planeCollisionCooldown - dt);
+        enemy.flash = Math.max(0, enemy.flash - dt);
+
+        for (const blimp of state.blimps) {
+          const blimpDelta = getWrappedDelta(enemy.x, enemy.y, blimp.x, blimp.y);
+          if (Math.hypot(blimpDelta.dx, blimpDelta.dy) < enemy.radius + blimp.radius) {
+            const pushAngle = Math.atan2(-blimpDelta.dy, -blimpDelta.dx);
+            enemy.x += Math.cos(pushAngle) * 24;
+            enemy.y += Math.sin(pushAngle) * 24;
+            wrapPosition(enemy, enemy.radius + 16);
+            enemy.angle = pushAngle;
+            break;
+          }
+        }
+
+        if (distance < enemy.radius + state.hero.radius + 4 && state.hero.planeCollisionCooldown <= 0 && enemy.planeCollisionCooldown <= 0) {
+          const safeDistance = Math.max(distance, 0.001);
+          const normalX = dx / safeDistance;
+          const normalY = dy / safeDistance;
+          const overlap = enemy.radius + state.hero.radius + 4 - distance + 2;
+          const heroSpeed = Math.hypot(state.hero.vx, state.hero.vy) || state.hero.speed;
+          const enemySpeed = Math.hypot(enemy.vx, enemy.vy) || enemy.speed;
+
+          state.hero.x -= normalX * overlap * 0.5;
+          state.hero.y -= normalY * overlap * 0.5;
+          enemy.x += normalX * overlap * 0.5;
+          enemy.y += normalY * overlap * 0.5;
+          wrapPosition(state.hero, state.hero.radius + 16);
+          wrapPosition(enemy, enemy.radius + 16);
+
+          state.hero.angle = Math.atan2(-normalY, -normalX);
+          enemy.angle = Math.atan2(normalY, normalX);
+          state.hero.speed = clamp(Math.max(120, heroSpeed * 0.9), 80, 341);
+          enemy.speed = clamp(Math.max(120, enemySpeed * 0.9), 120, 260);
+          state.hero.vx = Math.cos(state.hero.angle) * state.hero.speed;
+          state.hero.vy = Math.sin(state.hero.angle) * state.hero.speed;
+          enemy.vx = Math.cos(enemy.angle) * enemy.speed;
+          enemy.vy = Math.sin(enemy.angle) * enemy.speed;
+          state.hero.flash = 0.2;
+          enemy.flash = 0.2;
+          state.hero.planeCollisionCooldown = 0.45;
+          enemy.planeCollisionCooldown = 0.45;
+          spawnBurst(enemy.x - normalX * 6, enemy.y - normalY * 6, "#ffd4a0", 14);
+          enemy.health -= 1;
+          if (enemy.health <= 0) {
+            destroyEnemy(enemy);
+          }
+          damageHero();
+          if (state.over) {
+            return;
+          }
+          if (enemy.dead) {
+            continue;
+          }
+          setStatus("You collided with an enemy jet.", "");
+        }
+
+        const aimAligned = Math.abs(angleDelta) < 0.32;
+        const enemyMissileSpacingReady = state.elapsed - state.lastEnemyMissileAt >= 1.6;
+        if (enemy.missileCooldown <= 0 && enemyMissileSpacingReady && distance < 720 && aimAligned && Math.random() < 0.16) {
+          launchEnemyMissile(enemy);
+        }
+        if (enemy.shootCooldown <= 0 && distance < 500 && aimAligned) {
+          shootBullet("enemy", enemy.x + Math.cos(enemy.angle) * 22, enemy.y + Math.sin(enemy.angle) * 22, enemy.angle, 390, "#ff9f68");
+          enemy.shootCooldown = randomBetween(0.38, 0.72);
+        }
+      }
+    }
+
+    function updateBullets(dt) {
+      const remaining = [];
+
+      for (const bullet of state.bullets) {
+        if (bullet.destroyed) {
+          continue;
+        }
+
+        if (bullet.owner === "heroMissile" || bullet.owner === "enemyMissile") {
+          let target = null;
+          if (bullet.owner === "heroMissile") {
+            let targetDistance = Infinity;
+            for (const enemy of state.enemies) {
+              if (enemy.dead) {
+                continue;
+              }
+
+              const delta = getWrappedDelta(bullet.x, bullet.y, enemy.x, enemy.y);
+              const distance = Math.hypot(delta.dx, delta.dy);
+              if (distance < targetDistance) {
+                target = { dx: delta.dx, dy: delta.dy };
+                targetDistance = distance;
+              }
+            }
+          } else {
+            const delta = getWrappedDelta(bullet.x, bullet.y, state.hero.x, state.hero.y);
+            target = { dx: delta.dx, dy: delta.dy };
+          }
+
+          if (target) {
+            const missileSpeed = Math.hypot(bullet.vx, bullet.vy) || 580;
+            const desiredAngle = Math.atan2(target.dy, target.dx);
+            let angleDelta = desiredAngle - Math.atan2(bullet.vy, bullet.vx);
+
+            while (angleDelta > Math.PI) {
+              angleDelta -= Math.PI * 2;
+            }
+            while (angleDelta < -Math.PI) {
+              angleDelta += Math.PI * 2;
+            }
+
+            const nextAngle = Math.atan2(bullet.vy, bullet.vx) + clamp(angleDelta, -5.8 * dt, 5.8 * dt);
+            bullet.vx = Math.cos(nextAngle) * missileSpeed;
+            bullet.vy = Math.sin(nextAngle) * missileSpeed;
+          }
+        }
+
+        bullet.x += bullet.vx * dt;
+        bullet.y += bullet.vy * dt;
+        wrapPosition(bullet, bullet.radius + 2);
+        bullet.life -= dt;
+
+        if (bullet.life <= 0) {
+          if ((bullet.owner === "heroMissile" || bullet.owner === "enemyMissile") && !bullet.intercepted) {
+            explodeMissile(bullet.x, bullet.y, bullet.explosionRadius ?? 20, bullet.owner);
+          }
+          continue;
+        }
+
+        if (bullet.owner === "flare") {
+          let interceptedProjectile = false;
+          for (const otherBullet of state.bullets) {
+            if (otherBullet === bullet || otherBullet.destroyed) {
+              continue;
+            }
+            if (otherBullet.owner !== "enemy" && otherBullet.owner !== "heroMissile" && otherBullet.owner !== "enemyMissile") {
+              continue;
+            }
+
+            const delta = getWrappedDelta(bullet.x, bullet.y, otherBullet.x, otherBullet.y);
+            if (Math.hypot(delta.dx, delta.dy) <= bullet.radius + otherBullet.radius + 2) {
+              otherBullet.destroyed = true;
+              if (otherBullet.owner === "heroMissile" || otherBullet.owner === "enemyMissile") {
+                otherBullet.intercepted = true;
+              }
+              bullet.destroyed = true;
+              interceptedProjectile = true;
+              spawnBurst(otherBullet.x, otherBullet.y, "#ffc781", 10);
+              playSound(hitSound);
+              break;
+            }
+          }
+
+          if (interceptedProjectile) {
+            continue;
+          }
+        }
+
+        let bouncedOffBlimp = false;
+        for (const blimp of state.blimps) {
+          const blimpDelta = getWrappedDelta(blimp.x, blimp.y, bullet.x, bullet.y);
+          const distance = Math.hypot(blimpDelta.dx, blimpDelta.dy);
+          const minDistance = bullet.radius + blimp.radius;
+          if (distance <= minDistance) {
+            const safeDistance = Math.max(distance, 0.001);
+            let normalX = blimpDelta.dx / safeDistance;
+            let normalY = blimpDelta.dy / safeDistance;
+            const overlap = minDistance - distance + 1.5;
+
+            if (Math.abs(normalX) + Math.abs(normalY) < 0.001) {
+              const speed = Math.hypot(bullet.vx, bullet.vy) || 1;
+              normalX = bullet.vx / speed;
+              normalY = bullet.vy / speed;
+            }
+
+            const incomingDot = bullet.vx * normalX + bullet.vy * normalY;
+
+            bullet.x += normalX * overlap;
+            bullet.y += normalY * overlap;
+            wrapPosition(bullet, bullet.radius + 2);
+
+            if (incomingDot < 0) {
+              bullet.vx -= 2 * incomingDot * normalX;
+              bullet.vy -= 2 * incomingDot * normalY;
+            } else {
+              const speed = Math.hypot(bullet.vx, bullet.vy) || 1;
+              bullet.vx = normalX * speed;
+              bullet.vy = normalY * speed;
+            }
+
+            bullet.life = Math.max(0.08, bullet.life - 0.12);
+            spawnBurst(bullet.x, bullet.y, bullet.owner === "flare" ? "#ffc781" : "#dfeeff", 6);
+            bouncedOffBlimp = true;
+            break;
+          }
+        }
+        if (bouncedOffBlimp) {
+          remaining.push(bullet);
+          continue;
+        }
+
+        if (bullet.owner === "heroMissile") {
+          let hitEnemy = false;
+          for (const enemy of state.enemies) {
+            if (enemy.dead) {
+              continue;
+            }
+            const delta = getWrappedDelta(enemy.x, enemy.y, bullet.x, bullet.y);
+            if (Math.hypot(delta.dx, delta.dy) <= bullet.radius + enemy.radius) {
+              explodeMissile(bullet.x, bullet.y, bullet.explosionRadius ?? 20, bullet.owner);
+              hitEnemy = true;
+              break;
+            }
+          }
+
+          if (hitEnemy) {
+            continue;
+          }
+
+          remaining.push(bullet);
+          continue;
+        }
+
+        if (bullet.owner === "enemyMissile") {
+          const delta = getWrappedDelta(state.hero.x, state.hero.y, bullet.x, bullet.y);
+          if (Math.hypot(delta.dx, delta.dy) <= bullet.radius + state.hero.radius) {
+            explodeMissile(bullet.x, bullet.y, bullet.explosionRadius ?? 20, bullet.owner);
+            continue;
+          }
+
+          remaining.push(bullet);
+          continue;
+        }
+
+        if (bullet.owner === "hero" || bullet.owner === "flare") {
+          let hit = false;
+          for (const enemy of state.enemies) {
+            if (enemy.dead) {
+              continue;
+            }
+            const delta = getWrappedDelta(enemy.x, enemy.y, bullet.x, bullet.y);
+            const dx = delta.dx;
+            const dy = delta.dy;
+            if (Math.hypot(dx, dy) <= bullet.radius + enemy.radius) {
+              if (bullet.owner === "flare") {
+                continue;
+              }
+              enemy.health -= 1;
+              enemy.flash = 0.16;
+              spawnBurst(bullet.x, bullet.y, "#ffe2a3", 10);
+              playSound(hitSound);
+              if (enemy.health <= 0) {
+                destroyEnemy(enemy);
+              }
+              hit = true;
+              break;
+            }
+          }
+
+          if (hit) {
+            continue;
+          }
+        } else {
+          const delta = getWrappedDelta(state.hero.x, state.hero.y, bullet.x, bullet.y);
+          const dx = delta.dx;
+          const dy = delta.dy;
+          if (Math.hypot(dx, dy) <= bullet.radius + state.hero.radius) {
+            damageHero();
+            continue;
+          }
+        }
+
+        remaining.push(bullet);
+      }
+
+      state.bullets = remaining;
+      state.enemies = state.enemies.filter((enemy) => !enemy.dead);
+      enemiesEl.textContent = String(state.enemies.length);
+    }
+
+    function updateParticles(dt) {
+      const remaining = [];
+
+      for (const particle of state.particles) {
+        particle.x += particle.vx * dt;
+        particle.y += particle.vy * dt;
+        particle.vx *= Math.pow(0.94, dt * 60);
+        particle.vy *= Math.pow(0.94, dt * 60);
+        particle.life -= dt;
+
+        if (particle.life > 0) {
+          remaining.push(particle);
+        }
+      }
+
+      state.particles = remaining;
+    }
+
+    function updateExplosions(dt) {
+      const remaining = [];
+
+      for (const explosion of state.explosions) {
+        explosion.life -= dt;
+        if (explosion.life > 0) {
+          remaining.push(explosion);
+        }
+      }
+
+      state.explosions = remaining;
+    }
+
+    function fadeBullets(dt) {
+      const remaining = [];
+
+      for (const bullet of state.bullets) {
+        bullet.alpha = Math.max(0, (bullet.alpha ?? 1) - dt * 1.2);
+        if (bullet.alpha > 0.02) {
+          remaining.push(bullet);
+        }
+      }
+
+      state.bullets = remaining;
+    }
+
+    function updateWinState() {
+      if (!state.over && !state.won && state.enemies.length === 0) {
+        state.won = true;
+        const clearedLevel = state.level;
+        const nextLevel = clearedLevel + 1;
+        setStatus(`Congratulations! Level ${clearedLevel} clear in ${state.elapsed.toFixed(1)} seconds. Level ${nextLevel} incoming...`, "win");
+        levelAdvanceTimeout = setTimeout(() => {
+          currentLevel = nextLevel;
+          loadLevel(nextLevel, `Congratulations! Level ${clearedLevel} clear. Press any flight key for level ${nextLevel}.`);
+        }, 1800);
+      }
+    }
+
+    function updateClouds(dt) {
+      for (const cloud of clouds) {
+        cloud.x -= cloud.speed * dt;
+        if (cloud.x < -140) {
+          cloud.x = canvas.width + 160;
+          cloud.y = randomBetween(60, canvas.height - 160);
+        }
+      }
+    }
+
+    function updateStars(dt) {
+      for (const star of stars) {
+        star.x -= star.speed * dt;
+        if (star.x < -star.size * 2) {
+          star.x = canvas.width + star.size * 2;
+          star.y = randomBetween(18, canvas.height * 0.8);
+        }
+      }
+    }
+
+    function drawCloud(x, y, scale) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.scale(scale, scale);
+      ctx.fillStyle = "rgba(201, 221, 255, 0.26)";
+      ctx.beginPath();
+      ctx.arc(-34, 8, 24, 0, Math.PI * 2);
+      ctx.arc(-4, -4, 28, 0, Math.PI * 2);
+      ctx.arc(26, 10, 22, 0, Math.PI * 2);
+      ctx.arc(0, 16, 34, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawJet(entity, color, accent, alpha = 1) {
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(entity.x, entity.y);
+      ctx.rotate(entity.angle + Math.PI * 0.5);
+
+      if (entity.flash > 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
+        ctx.beginPath();
+        ctx.arc(0, 0, 30, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (planeImage.complete && planeImage.naturalWidth > 0) {
+        const spriteSize = entity.radius * 7.56;
+        const bufferSize = Math.ceil(spriteSize);
+        planeTintCanvas.width = bufferSize;
+        planeTintCanvas.height = bufferSize;
+        planeTintCtx.clearRect(0, 0, bufferSize, bufferSize);
+        planeTintCtx.filter = "contrast(1.3)";
+        planeTintCtx.drawImage(planeImage, 0, 0, bufferSize, bufferSize);
+        planeTintCtx.filter = "none";
+        planeTintCtx.globalCompositeOperation = "source-atop";
+        planeTintCtx.fillStyle = color;
+        planeTintCtx.globalAlpha = 0.42;
+        planeTintCtx.fillRect(0, 0, bufferSize, bufferSize);
+        planeTintCtx.globalCompositeOperation = "source-over";
+        planeTintCtx.globalAlpha = 1;
+        ctx.drawImage(planeTintCanvas, -spriteSize * 0.5, -spriteSize * 0.5, spriteSize, spriteSize);
+      } else {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(28, 0);
+        ctx.lineTo(-18, -14);
+        ctx.lineTo(-8, 0);
+        ctx.lineTo(-18, 14);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function drawHullLabel(entity, alpha = 1) {
+      const labelX = entity.x + entity.radius + 12;
+      const labelY = entity.y - entity.radius - 12;
+      ctx.save();
+      ctx.globalAlpha = 0.615 * alpha;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+      ctx.beginPath();
+      ctx.arc(labelX, labelY, 11, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.92)";
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+      ctx.font = "bold 16px Trebuchet MS";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(entity.health), labelX, labelY);
+      ctx.restore();
+    }
+
+    function drawBlimp(blimp) {
+      ctx.save();
+      ctx.translate(blimp.x, blimp.y);
+      ctx.rotate(blimp.angle);
+      ctx.scale(1.05, 1.05);
+
+      ctx.fillStyle = "rgba(14, 20, 30, 0.24)";
+      ctx.beginPath();
+      ctx.ellipse(-2, 17, 50, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "#8d9ab4";
+      ctx.beginPath();
+      ctx.moveTo(62, 0);
+      ctx.bezierCurveTo(48, -18, 12, -26, -34, -22);
+      ctx.bezierCurveTo(-58, -18, -66, -7, -68, 0);
+      ctx.bezierCurveTo(-66, 7, -58, 18, -34, 22);
+      ctx.bezierCurveTo(12, 26, 48, 18, 62, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#b7c4d8";
+      ctx.beginPath();
+      ctx.moveTo(44, -1);
+      ctx.bezierCurveTo(28, -14, -2, -18, -30, -15);
+      ctx.bezierCurveTo(-47, -12, -54, -3, -54, 0);
+      ctx.bezierCurveTo(-54, 3, -47, 12, -30, 15);
+      ctx.bezierCurveTo(-2, 18, 28, 14, 44, 1);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "#5d6579";
+      ctx.beginPath();
+      ctx.roundRect(-18, 10, 24, 11, 4);
+      ctx.fill();
+
+      ctx.strokeStyle = "rgba(220, 232, 247, 0.8)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-10, 10);
+      ctx.lineTo(-8, 20);
+      ctx.moveTo(2, 10);
+      ctx.lineTo(0, 20);
+      ctx.stroke();
+
+      ctx.fillStyle = "#7b849a";
+      ctx.beginPath();
+      ctx.moveTo(-56, 0);
+      ctx.lineTo(-76, -9);
+      ctx.lineTo(-76, 9);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(-46, -7);
+      ctx.lineTo(-58, -21);
+      ctx.lineTo(-42, -15);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(-46, 7);
+      ctx.lineTo(-58, 21);
+      ctx.lineTo(-42, 15);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(235, 243, 255, 0.72)";
+      ctx.beginPath();
+      ctx.ellipse(20, -6, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawRepairDrone(drone, alpha = 1) {
+      if (!drone?.active) {
+        return;
+      }
+
+      const bobY = Math.sin(state.elapsed * 2.4 + drone.bobSeed) * 3;
+      const bobX = Math.cos(state.elapsed * 1.7 + drone.bobSeed) * 1.6;
+
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.translate(drone.x + bobX, drone.y + bobY);
+      ctx.strokeStyle = "rgba(122, 249, 221, 0.9)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, drone.radius * 0.8, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = "#3fc4ad";
+      ctx.fillRect(-2.2, -8, 4.4, 16);
+      ctx.fillRect(-8, -2.2, 16, 4.4);
+
+      ctx.restore();
+    }
+
+    function drawSky() {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, "#050c18");
+      sky.addColorStop(0.58, "#0b1a31");
+      sky.addColorStop(1, "#1b3552");
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      const moon = state.moon ?? { x: 190, y: 130 };
+      const moonGlow = ctx.createRadialGradient(moon.x, moon.y, 18, moon.x, moon.y, 90);
+      moonGlow.addColorStop(0, "rgba(212, 232, 255, 0.81)");
+      moonGlow.addColorStop(1, "rgba(212, 232, 255, 0)");
+      ctx.fillStyle = moonGlow;
+      ctx.beginPath();
+      ctx.arc(moon.x, moon.y, 90, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (const star of stars) {
+        const alpha = star.alphaBase + Math.sin(state.elapsed * 1.4 + star.twinkle) * 0.18;
+        ctx.fillStyle = `rgba(232, 241, 255, ${Math.max(0.15, alpha)})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = "rgba(237, 246, 255, 0.9)";
+      ctx.beginPath();
+      ctx.arc(moon.x, moon.y, 34, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "rgba(9, 18, 36, 0.18)";
+      ctx.beginPath();
+      ctx.arc(moon.x + 13, moon.y - 12, 28, 0, Math.PI * 2);
+      ctx.fill();
+
+      for (const cloud of clouds) {
+        drawCloud(cloud.x, cloud.y, cloud.scale);
+      }
+    }
+
+    function drawBullets() {
+      for (const bullet of state.bullets) {
+        ctx.globalAlpha = bullet.alpha ?? 1;
+        if (bullet.owner === "heroMissile" || bullet.owner === "enemyMissile") {
+          const angle = Math.atan2(bullet.vy, bullet.vx);
+          ctx.save();
+          ctx.translate(bullet.x, bullet.y);
+          ctx.rotate(angle);
+          ctx.fillStyle = bullet.owner === "heroMissile" ? "#f7ecd0" : "#ffd2c6";
+          ctx.beginPath();
+          ctx.moveTo(9, 0);
+          ctx.lineTo(1, -4);
+          ctx.lineTo(-7, -4);
+          ctx.lineTo(-10, 0);
+          ctx.lineTo(-7, 4);
+          ctx.lineTo(1, 4);
+          ctx.closePath();
+          ctx.fill();
+
+          ctx.fillStyle = bullet.owner === "heroMissile" ? "#d74f2a" : "#a32c31";
+          ctx.beginPath();
+          ctx.moveTo(-10, 0);
+          ctx.lineTo(-16, -3);
+          ctx.lineTo(-13, 0);
+          ctx.lineTo(-16, 3);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = bullet.owner === "heroMissile" ? "rgba(255, 193, 85, 0.78)" : "rgba(255, 116, 79, 0.82)";
+          ctx.beginPath();
+          ctx.moveTo(-10, 0);
+          ctx.lineTo(-18, -2);
+          ctx.lineTo(-21, 0);
+          ctx.lineTo(-18, 2);
+          ctx.closePath();
+          ctx.fill();
+          ctx.restore();
+        } else {
+          ctx.fillStyle = bullet.color;
+          ctx.beginPath();
+          ctx.arc(bullet.x, bullet.y, bullet.radius, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        if (bullet.owner === "flare") {
+          ctx.fillStyle = "rgba(255, 225, 160, 0.38)";
+          ctx.beginPath();
+          ctx.arc(bullet.x, bullet.y, bullet.radius * 2.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawParticles() {
+      for (const particle of state.particles) {
+        ctx.globalAlpha = Math.max(0, particle.life * 1.5);
+        ctx.fillStyle = particle.color;
+        ctx.beginPath();
+        ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawExplosions() {
+      for (const explosion of state.explosions) {
+        const progress = 1 - explosion.life / explosion.maxLife;
+        const radius = explosion.maxRadius * (0.45 + progress * 0.55);
+
+        ctx.globalAlpha = Math.max(0, 0.3 * (1 - progress));
+        ctx.fillStyle = "rgba(255, 207, 120, 0.58)";
+        ctx.beginPath();
+        ctx.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = Math.max(0, 0.76 * (1 - progress));
+        ctx.strokeStyle = "rgba(255, 242, 194, 0.9)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(explosion.x, explosion.y, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function draw() {
+      const unitAlpha = state.over ? state.deathFadeAlpha : 1;
+      drawSky();
+      for (const blimp of state.blimps) {
+        drawBlimp(blimp);
+      }
+      drawRepairDrone(state.repairDrone, unitAlpha);
+      drawBullets();
+      drawExplosions();
+      drawParticles();
+
+      for (const enemy of state.enemies) {
+        drawJet(enemy, enemy.color, "#ffeab6", unitAlpha);
+        drawHullLabel(enemy, unitAlpha);
+      }
+
+      if (!state.over || state.deathFadeAlpha > 0.02 || state.hero.health > 0) {
+        drawJet(state.hero, "#3f6ee8", "#8fe7ff", unitAlpha);
+        drawHullLabel(state.hero, unitAlpha);
+      }
+
+    }
+
+    function fireHeroShot() {
+      if (state.over || state.won || state.hero.shootCooldown > 0) {
+        return;
+      }
+
+      const hero = state.hero;
+      shootBullet("hero", hero.x + Math.cos(hero.angle) * 24, hero.y + Math.sin(hero.angle) * 24, hero.angle, 507, "#78b8ff");
+      hero.shootCooldown = 0.18;
+      state.shotsFired += 1;
+      shotsEl.textContent = String(state.shotsFired);
+    }
+
+    function update(dt) {
+      if (!state.started || state.paused) {
+        draw();
+        return;
+      }
+
+      updateClouds(dt);
+      updateStars(dt);
+      updateBlimps(dt);
+
+      if (!state.over && !state.won) {
+        state.elapsed += dt;
+        timerEl.textContent = `${state.elapsed.toFixed(1)}s`;
+        updateHero(dt);
+        updateRepairDrone(dt);
+        updateEnemies(dt);
+        updateBullets(dt);
+        updateParticles(dt);
+        updateExplosions(dt);
+        updateWinState();
+      } else {
+        if (state.over) {
+          fadeBullets(dt);
+          state.deathFadeAlpha = Math.max(0, state.deathFadeAlpha - dt * 0.55);
+        }
+        updateParticles(dt);
+        updateExplosions(dt);
+      }
+
+      draw();
+    }
+
+    function frame(timestamp) {
+      if (!lastFrame) {
+        lastFrame = timestamp;
+      }
+
+      const dt = Math.min(0.033, (timestamp - lastFrame) / 1000);
+      lastFrame = timestamp;
+      update(dt);
+      requestAnimationFrame(frame);
+    }
+
+    function handleKeyChange(event, pressed) {
+      const shouldStart = pressed && !state.started;
+
+      switch (event.code) {
+        case "ArrowLeft":
+        case "KeyA":
+          if (shouldStart) {
+            startSortie();
+          }
+          keys.left = pressed;
+          event.preventDefault();
+          break;
+        case "ArrowRight":
+        case "KeyD":
+          if (shouldStart) {
+            startSortie();
+          }
+          keys.right = pressed;
+          event.preventDefault();
+          break;
+        case "ArrowUp":
+        case "KeyW":
+          if (shouldStart) {
+            startSortie();
+          }
+          keys.up = pressed;
+          event.preventDefault();
+          break;
+        case "ArrowDown":
+          if (shouldStart) {
+            startSortie();
+          }
+          keys.down = pressed;
+          event.preventDefault();
+          break;
+        case "KeyE":
+          if (pressed && !event.repeat) {
+            if (!state.started) {
+              startSortie();
+            }
+            primeAudio();
+            launchHeroMissile();
+          }
+          event.preventDefault();
+          break;
+        case "Space":
+          if (pressed && !event.repeat) {
+            if (!state.started) {
+              startSortie();
+            }
+            primeAudio();
+            fireHeroShot();
+          }
+          event.preventDefault();
+          break;
+        case "KeyF":
+          if (pressed && !event.repeat) {
+            if (!state.started) {
+              startSortie();
+            }
+            primeAudio();
+            dropFlares();
+          }
+          event.preventDefault();
+          break;
+        case "KeyP":
+          if (pressed && !event.repeat) {
+            if (!state.started) {
+              startSortie();
+              event.preventDefault();
+              break;
+            }
+            togglePause();
+          }
+          event.preventDefault();
+          break;
+        case "KeyR":
+          event.preventDefault();
+          if (pressed && !event.repeat) {
+            resetGame();
+          }
+          break;
+        default:
+          return;
+      }
+
+      if (pressed) {
+        primeAudio();
+      }
+    }
+
+    window.addEventListener("keydown", (event) => handleKeyChange(event, true));
+    window.addEventListener("keyup", (event) => handleKeyChange(event, false));
+    restartBtn.addEventListener("click", () => {
+      primeAudio();
+      resetGame();
+    });
+    missilesToggleBtn.addEventListener("click", () => {
+      setMissilesEnabled(!missilesEnabled);
+      canvas.focus();
+    });
+
+    resetGame();
+    syncMissileUi();
+    requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

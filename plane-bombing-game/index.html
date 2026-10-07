@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sky Strike</title>
+  <style>
+    :root { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #f8fbff; background: #102238; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: radial-gradient(circle at 50% 0%, #254d6f, #0d1725 70%); }
+    main { width: min(98vw, 1500px); padding: 18px; }
+    header { display: flex; align-items: baseline; justify-content: flex-start; gap: 8px; margin-bottom: 12px; font-size: clamp(.9rem, 2vw, 1.35rem); font-weight: 700; }
+    h1 { margin: 0; letter-spacing: .05em; font-size: 1em; }
+    #status { margin: 0; color: #d2e6fa; font-size: 1em; }
+    .game-area { display: flex; align-items: center; gap: 18px; }
+    .game-wrap { flex: 1 1 0; min-width: 0; border: 4px solid #71b9dc; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 50px #0009; background: #82cef2; }
+    canvas { display: block; width: 100%; height: auto; aspect-ratio: 96 / 65; touch-action: none; }
+    .controls { display: flex; flex: 0 0 300px; flex-direction: column; align-items: center; width: min(100%, 300px); gap: 10px; margin: 0; padding-bottom: 75px; }
+    .control-row { display: flex; width: 100%; align-items: center; justify-content: center; gap: 16px; }
+    .flight-controls { justify-self: center; }
+    .flight-controls { display: grid; grid-template-columns: repeat(3, minmax(52px, 1fr)); grid-template-areas: ". up ." "left . right" ". down ."; gap: 6px; }
+    #slower { grid-area: left; }
+    #up { grid-area: up; }
+    #down { grid-area: down; }
+    #faster { grid-area: right; }
+    .help-panel { width: 100%; margin: 0; padding: .65rem; border: 1px solid #5d99b7; border-radius: 9px; background: #17364dcc; color: #d9f1ff; font-size: .72rem; line-height: 1.45; text-align: center; }
+    .controls .control-row + .control-row { margin-top: 24px; }
+    .controls .hint { width: 100%; margin: 24px 0 0; }
+    .controls button { padding: .55rem .45rem; font-size: .82rem; }
+    button { border: 1px solid #89bed8; border-radius: 9px; padding: .65rem .95rem; background: #1e405c; color: #fff; font: inherit; font-weight: 800; cursor: pointer; white-space: nowrap; box-shadow: inset 0 1px #ffffff33; }
+    button:hover, button:focus-visible { background: #2f698e; outline: 3px solid #d6f4ff; outline-offset: 2px; }
+    .hint { margin: 12px 0 0; text-align: center; color: #bad0df; font-size: .78rem; line-height: 1.6; }
+    kbd { padding: 1px 5px; border: 1px solid #90aaba; border-radius: 4px; background: #172d42; color: white; font-family: inherit; }
+    @media (max-width: 767px) {
+      header { flex-wrap: nowrap; gap: 4px; font-size: clamp(.58rem, 3vw, .95rem); white-space: nowrap; }
+      h1 { letter-spacing: .025em; }
+      .game-area { display: block; }
+      .controls { margin: 16px auto 0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header><h1>SKY STRIKE -</h1><p id="status" aria-live="polite">Level 1 · Score: 0 · Hull: 99 · Boss: 150</p></header>
+    <div class="game-area">
+      <div class="game-wrap"><canvas id="game" width="1920" height="1300" aria-label="Plane bombing game"></canvas></div>
+      <div class="controls">
+        <div class="control-row">
+          <div class="flight-controls" aria-label="Flight controls">
+            <button id="slower" aria-label="Fly left">◀</button>
+            <button id="up" aria-label="Fly up">▲</button>
+            <button id="down" aria-label="Fly down">▼</button><button id="faster" aria-label="Fly right">▶</button>
+          </div>
+          <button id="bomb">Drop</button>
+        </div>
+        <div class="control-row">
+          <button id="reset">Press N to start</button>
+          <button id="help" aria-expanded="false" aria-controls="help-panel">Help</button>
+        </div>
+        <p id="help-panel" class="help-panel" hidden>Score points by bombing green tanks for 10, red tanks for 20, barns for 10, blimps for 20, and enemy raiders for 30. At 150 points, the Boss Barn arrives after a short warning; destroy it to clear Level 1. Press New mission or N to play Level 2 at night. Blue repair pickups restore hull; avoid enemy fire and collisions.</p>
+        <p class="hint">Green tanks and barns are worth 10; red tanks and blimps 20; raiders 30. At <strong>150 points</strong>, the Boss Barn arrives—destroy it to clear Level 1, then press <kbd>N</kbd> for nighttime Level 2. Fly with <kbd>Arrow keys</kbd> or <kbd>W</kbd>/<kbd>S</kbd>; press <kbd>Space</kbd> or <strong>Drop</strong> to bomb. Blue pickups restore hull; <kbd>P</kbd> pauses.</p>
+      </div>
+    </div>
+  </main>
+  <script>
+    const canvas = document.querySelector('#game');
+    const ctx = canvas.getContext('2d');
+    const status = document.querySelector('#status');
+    const bomberSprite = new Image();
+    bomberSprite.src = 'assets/bomber-sprite-v2.png';
+    const bombSprite = new Image();
+    bombSprite.src = 'assets/bomb-sprite.png';
+    const blimpSpriteSheet = new Image();
+    blimpSpriteSheet.src = 'assets/blimp-turn-sprites.png';
+    const pineSprite = new Image();
+    pineSprite.src = 'assets/pine-tree-sprite.png';
+    const fighterSprite = new Image();
+    fighterSprite.src = 'assets/fighter-raider.png';
+    const muffledExplosionSound = new Audio('../sounds/muffled_explosion.mp3');
+    muffledExplosionSound.preload = 'auto';
+    const metalKnockSound = new Audio('../sounds/metal-knock.mp3');
+    metalKnockSound.preload = 'auto';
+    const enemyPlaneSound = new Audio('../sounds/engine-hum.mp3');
+    enemyPlaneSound.preload = 'auto';
+    enemyPlaneSound.loop = true;
+    const activeDamageSounds = new Set();
+    let audioContext, engineOscillator, engineGain;
+
+    function enableAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        engineOscillator = audioContext.createOscillator();
+        engineGain = audioContext.createGain();
+        engineOscillator.type = 'sawtooth';
+        engineOscillator.frequency.value = 40;
+        engineGain.gain.value = 0;
+        engineOscillator.connect(engineGain).connect(audioContext.destination);
+        engineOscillator.start();
+      }
+      if (audioContext.state === 'suspended') audioContext.resume();
+    }
+
+    function updateEngineSound() {
+      if (!audioContext) return;
+      const now = audioContext.currentTime;
+      const flying = !waitingToStart && !won && !dead && !paused && plane;
+      const speed = plane ? Math.abs(plane.speed) : 0;
+      engineOscillator.frequency.setTargetAtTime(24 + speed * 8, now, .08);
+      engineGain.gain.setTargetAtTime(flying ? .004 : 0, now, .08);
+    }
+
+    function playBombSound() {
+      enableAudio();
+      const now = audioContext.currentTime;
+      const bombOscillator = audioContext.createOscillator();
+      const bombGain = audioContext.createGain();
+      bombOscillator.type = 'sine';
+      bombOscillator.frequency.setValueAtTime(260, now);
+      bombOscillator.frequency.exponentialRampToValueAtTime(65, now + 3);
+      bombGain.gain.setValueAtTime(.025, now);
+      bombOscillator.connect(bombGain).connect(audioContext.destination);
+      bombOscillator.start(now);
+      bombOscillator.stop(now + 3.1);
+      return { bombOscillator, bombGain };
+    }
+
+    function stopBombSound(bomb) {
+      if (!bomb.sound) return;
+      const now = audioContext.currentTime;
+      bomb.sound.bombGain.gain.setTargetAtTime(.001, now, .02);
+      bomb.sound.bombOscillator.stop(now + .08);
+      bomb.sound = null;
+    }
+
+    function playEnemyShotSound() {
+      if (!audioContext) return;
+      const now = audioContext.currentTime;
+      const shotOscillator = audioContext.createOscillator();
+      const shotGain = audioContext.createGain();
+      shotOscillator.type = 'square';
+      shotOscillator.frequency.setValueAtTime(175, now);
+      shotOscillator.frequency.exponentialRampToValueAtTime(95, now + .14);
+      shotGain.gain.setValueAtTime(.032, now);
+      shotGain.gain.exponentialRampToValueAtTime(.001, now + .14);
+      shotOscillator.connect(shotGain).connect(audioContext.destination);
+      shotOscillator.start(now);
+      shotOscillator.stop(now + .15);
+    }
+
+    function playExplosionSound() {
+      if (!audioContext) return;
+      const explosion = muffledExplosionSound.cloneNode();
+      explosion.volume = .5;
+      explosion.play().catch(() => {});
+    }
+
+    function playDamageSound() {
+      if (!audioContext) return;
+      const knock = metalKnockSound.cloneNode();
+      knock.volume = .11;
+      activeDamageSounds.add(knock);
+      knock.addEventListener('ended', () => activeDamageSounds.delete(knock), { once: true });
+      knock.play().catch(() => {});
+    }
+
+    function playPickupSound() {
+      if (!audioContext) return;
+      const now = audioContext.currentTime;
+      const ding = audioContext.createOscillator();
+      const dingGain = audioContext.createGain();
+      ding.type = 'sine';
+      ding.frequency.setValueAtTime(660, now);
+      ding.frequency.setValueAtTime(880, now + .07);
+      dingGain.gain.setValueAtTime(.06, now);
+      dingGain.gain.exponentialRampToValueAtTime(.001, now + .24);
+      ding.connect(dingGain).connect(audioContext.destination);
+      ding.start(now);
+      ding.stop(now + .25);
+    }
+
+    function playEnemyPlaneSound() {
+      if (!audioContext) return;
+      enemyPlaneSound.currentTime = 0;
+      enemyPlaneSound.play().catch(() => {});
+    }
+
+    function updateEnemyPlaneSound() {
+      if (!audioContext) return;
+      const active = enemyFighters.length && !waitingToStart && !won && !dead && !paused;
+      enemyPlaneSound.volume = .018;
+      if (active && enemyPlaneSound.paused) enemyPlaneSound.play().catch(() => {});
+      if (!active && !enemyPlaneSound.paused) { enemyPlaneSound.pause(); enemyPlaneSound.currentTime = 0; }
+    }
+    // Keep game coordinates stable while the double-resolution canvas renders them sharply.
+    const W = 960, H = 650, ground = 543, DISPLAY_SCALE = 2, GROUND_SCROLL_SPEED = 2.1;
+    const HILL_HEIGHT = (H - ground) * .55;
+    let keys = {}, bombs = [], explosions = [], enemyShots = [], tankShots = [], powerUps = [], enemyFighters = [], won = false, dead = false, paused = false, waitingToStart = true, scrollOffset = 0;
+    const BOSS_TRIGGER = 150, MAX_HULL = 99;
+    const BARN_SCALE = .72, TOWER_GUN_Y = -70, TOWER_WALL_TOP = TOWER_GUN_Y - 2;
+    let plane, tanks, blimp, barn, bossFort, bossFortSpawned, bossFortTimer, lives, score, redTankTimer, powerUpTimer, fighterTimer, level = 1;
+
+    function createTank(x = W + 90 + Math.random() * 220, red = false) {
+      return { x, y: ground - 23, speed: red ? 1.2 : .6, red, angle: 0, slopeAngle: 0, fireCooldown: red ? 90 : 180, alive: true };
+    }
+    function createBlimp(x = 690, y = 115, vx = 1.25, vy = .78, entering = false) {
+      return { x, y, vx, vy, entering, leaving: false, fireCooldown: 95, alive: true, facing: vx >= 0 ? 1 : -1, frame: vx >= 0 ? 0 : 4, turning: false, turnProgress: 0, turnTick: 0 };
+    }
+    function createBossFort() {
+      const step = 88 * BARN_SCALE, stackHeight = 64 * BARN_SCALE;
+      const layout = [[0, 0], [0, -stackHeight], [step, 0], [step * 2, 0], [step * 3, 0], [step * 3, -stackHeight]];
+      return { x: W + 90, width: step * 4, barns: layout.map(([offset, yOffset], index) => ({ offset, yOffset, fireCooldown: 55 + index * 19, angle: 0, alive: true })) };
+    }
+    function bossBarnBaseY(section) {
+      const x = bossFort.x + section.offset;
+      const halfWidth = 44 * BARN_SCALE;
+      let grassY = terrainY(x);
+      for (let offset = -halfWidth; offset <= halfWidth; offset += 8) grassY = Math.max(grassY, terrainY(x + offset));
+      return grassY + section.yOffset;
+    }
+
+    function newMission(levelNumber = 1) {
+      enableAudio();
+      level = levelNumber;
+      plane = { x: 220, y: 120, vy: 0, speed: 2.1, cooldown: 0, invulnerable: 0 };
+      blimp = createBlimp();
+      barn = { x: W + 450, fireCooldown: 85, angle: 0, alive: true, respawnTimer: 0 };
+      bossFort = null;
+      bossFortSpawned = false;
+      bossFortTimer = -1;
+      lives = MAX_HULL;
+      score = 0;
+      tanks = [createTank(265), createTank(505), createTank(755)];
+      redTankTimer = 240 + Math.floor(Math.random() * 180);
+      powerUpTimer = 420 + Math.floor(Math.random() * 240);
+      fighterTimer = 540 + Math.floor(Math.random() * 300);
+      bombs = []; explosions = []; enemyShots = []; tankShots = []; powerUps = []; enemyFighters = []; won = false; dead = false; paused = false; waitingToStart = false; scrollOffset = 0;
+      status.textContent = `Level ${level} · Score: 0 · Hull: ${MAX_HULL} · Boss: ${BOSS_TRIGGER}`;
+    }
+    function dropBomb() {
+      if (waitingToStart || won || paused || !plane || plane.cooldown > 0 || bombs.length >= 2) return;
+      const sound = playBombSound();
+      // A released bomb keeps the aircraft's forward velocity from the moment it leaves the bay.
+      bombs.push({ x: plane.x + 18, y: plane.y + 28, vx: plane.speed, vy: 1.26, angle: -Math.PI / 6, sound });
+      plane.cooldown = 18;
+    }
+    function drawCloud(x, y, s) {
+      const puffs = [[0,4,24],[25,-10,33],[55,1,25],[32,11,35]];
+      ctx.save();
+      // Cool soft shadow beneath the cloud volume.
+      ctx.fillStyle = '#578ba4'; ctx.globalAlpha = .18;
+      ctx.beginPath(); ctx.ellipse(x + 34*s, y + 18*s, 51*s, 13*s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.globalAlpha = .82;
+      ctx.save(); ctx.beginPath(); ctx.rect(x - 28*s, y - 48*s, 120*s, 74*s); ctx.clip();
+      puffs.forEach(([dx,dy,r]) => {
+        const px = x + dx*s, py = y + dy*s, radius = r*s;
+        const puff = ctx.createRadialGradient(px - radius*.28, py - radius*.36, radius*.08, px, py, radius);
+        puff.addColorStop(0, '#ffffff'); puff.addColorStop(.58, '#f7fbfd'); puff.addColorStop(1, '#b9d2dd');
+        ctx.fillStyle = puff; ctx.beginPath(); ctx.arc(px, py, radius, 0, Math.PI * 2); ctx.fill();
+      });
+      ctx.restore();
+      const base = ctx.createLinearGradient(x, y, x, y + 26*s);
+      base.addColorStop(0, '#f7fbfd'); base.addColorStop(1, '#c2d9e2');
+      ctx.fillStyle = base; ctx.fillRect(x - 2*s, y + 10*s, 70*s, 16*s);
+      ctx.restore();
+    }
+    function terrainY(x) {
+      // Layered waves make larger, less predictable rolling terrain.
+      const worldX = x + scrollOffset;
+      const rolling = Math.max(0, Math.min(1, .7 * Math.sin(worldX * .009) + .3 * Math.sin(worldX * .021 + 1.4)));
+      return ground - HILL_HEIGHT * rolling;
+    }
+    function drawPine(x, baseY, scale) {
+      scale *= .7;
+      if (pineSprite.complete && pineSprite.naturalWidth) {
+        const height = 124 * scale, width = 92 * scale;
+        ctx.save(); ctx.filter = 'brightness(.62) saturate(.85) hue-rotate(8deg)';
+        ctx.drawImage(pineSprite, x - width / 2, baseY - height, width, height);
+        ctx.restore();
+        return;
+      }
+      ctx.save(); ctx.translate(x, baseY); ctx.scale(scale, scale);
+      ctx.fillStyle = '#5f4129'; ctx.fillRect(-4, -30, 8, 30);
+      ctx.fillStyle = '#285c3c';
+      [[-62, 27], [-43, 38], [-22, 48]].forEach(([top, width]) => {
+        ctx.beginPath(); ctx.moveTo(0, top); ctx.lineTo(-width, 2); ctx.lineTo(width, 2); ctx.closePath(); ctx.fill();
+      });
+      ctx.fillStyle = '#3b7b4d'; ctx.beginPath(); ctx.moveTo(0,-62); ctx.lineTo(-18,-19); ctx.lineTo(0,-27); ctx.closePath(); ctx.fill();
+      ctx.restore();
+    }
+    function barnBaseY() {
+      // Use the lowest point under the whole barn footprint, so neither edge floats above a slope.
+      let baseY = terrainY(barn.x);
+      for (let offset = -44; offset <= 44; offset += 11) baseY = Math.max(baseY, terrainY(barn.x + offset));
+      return baseY;
+    }
+    function drawBarn() {
+      if (!barn.alive) return;
+      ctx.save(); ctx.translate(barn.x, barnBaseY()); ctx.scale(BARN_SCALE, BARN_SCALE);
+      ctx.fillStyle = '#9a3f35'; ctx.fillRect(-44, -64, 88, 64);
+      ctx.fillStyle = '#6c2929'; ctx.beginPath(); ctx.moveTo(-55,-64); ctx.lineTo(0,-112); ctx.lineTo(55,-64); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#e4b268'; ctx.fillRect(-12,-43,24,43);
+      ctx.fillStyle = '#3d5360'; ctx.fillRect(-34,-52,16,16); ctx.fillRect(18,-52,16,16);
+      ctx.save(); ctx.translate(0,-82); ctx.rotate(barn.angle); ctx.fillStyle = '#26313d'; ctx.fillRect(0,-3,32,6); ctx.restore();
+      ctx.restore();
+    }
+    function drawBossFortBarn(section) {
+      if (!section.alive) return;
+      const x = bossFort.x + section.offset;
+      const baseY = bossBarnBaseY(section);
+      ctx.save(); ctx.translate(x, baseY); ctx.scale(BARN_SCALE, BARN_SCALE);
+      const hasBarnAbove = section.yOffset === 0 && bossFort.barns.some(other => other.offset === section.offset && other.yOffset < section.yOffset);
+      const lowerSection = section.yOffset < 0 && bossFort.barns.find(other => other.offset === section.offset && other.yOffset === 0);
+      // When its lower level is gone, leave the surviving tower visibly propped up.
+      if (lowerSection && !lowerSection.alive) {
+        ctx.fillStyle = '#111417';
+        [-31, 27].forEach(legX => ctx.fillRect(legX, 0, 4, 64));
+      }
+      ctx.fillStyle = '#f2f5f1'; ctx.fillRect(-44, hasBarnAbove ? TOWER_WALL_TOP : -64, 88, hasBarnAbove ? -TOWER_WALL_TOP : 64);
+      if (!hasBarnAbove) {
+        ctx.fillStyle = '#4b555a'; ctx.beginPath(); ctx.moveTo(-55,-64); ctx.lineTo(0,-112); ctx.lineTo(55,-64); ctx.closePath(); ctx.fill();
+      }
+      ctx.fillStyle = '#e4b268'; ctx.fillRect(-12,-43,24,43);
+      ctx.fillStyle = '#3d5360'; ctx.fillRect(-34,-52,16,16); ctx.fillRect(18,-52,16,16);
+      if (section.yOffset === 0 && !hasBarnAbove) {
+        ctx.fillStyle = '#4b555a'; ctx.fillRect(-11, -85, 22, 10);
+      }
+      if (!hasBarnAbove) { ctx.save(); ctx.translate(0,-82); ctx.rotate(section.angle); ctx.fillStyle = '#26313d'; ctx.fillRect(0,-3,32,6); ctx.restore(); }
+      ctx.restore();
+    }
+    function drawBossFortTowerGun(section) {
+      const hasBarnAbove = section.yOffset === 0 && bossFort.barns.some(other => other.offset === section.offset && other.yOffset < section.yOffset);
+      if (!section.alive || !hasBarnAbove) return;
+      const x = bossFort.x + section.offset;
+      ctx.save(); ctx.translate(x, bossBarnBaseY(section)); ctx.scale(BARN_SCALE, BARN_SCALE);
+      ctx.fillStyle = '#4b555a'; ctx.fillRect(-11, TOWER_GUN_Y - 3, 22, 10);
+      ctx.translate(0, TOWER_GUN_Y); ctx.rotate(section.angle); ctx.fillStyle = '#26313d'; ctx.fillRect(0, -3, 32, 6);
+      ctx.restore();
+    }
+    function drawTank(t) {
+      if (!t.alive) return;
+      ctx.save(); ctx.translate(t.x, t.y + 8.3); ctx.scale(.64, .64); ctx.rotate(t.slopeAngle);
+      ctx.fillStyle = t.red ? '#a83c38' : '#1d5b39'; ctx.fillRect(-28, -12, 56, 15);
+      ctx.fillStyle = t.red ? '#682829' : '#143d28'; ctx.fillRect(-32, 4, 64, 10);
+      ctx.fillStyle = t.red ? '#e26550' : '#3f9861'; ctx.fillRect(-13, -25, 26, 16);
+      ctx.save(); ctx.translate(0, -17); ctx.rotate(t.angle - t.slopeAngle); ctx.fillStyle = t.red ? '#5b2324' : '#163f29'; ctx.fillRect(0, -3, 35, 6); ctx.restore();
+      ctx.fillStyle = '#081b14'; [-19, 19].forEach(x => { ctx.beginPath(); ctx.arc(x, 14, 9, 0, Math.PI*2); ctx.fill(); });
+      ctx.restore();
+    }
+    function drawPlane() {
+      ctx.save(); ctx.translate(plane.x, plane.y);
+      if (plane.invulnerable && Math.floor(plane.invulnerable / 5) % 2 === 0) ctx.globalAlpha = .35;
+      if (bomberSprite.complete && bomberSprite.naturalWidth) {
+        ctx.drawImage(bomberSprite, -62.5, -21, 125, 42);
+      } else {
+        ctx.fillStyle = '#d8e6ee'; ctx.beginPath(); ctx.moveTo(-55, 0); ctx.lineTo(50, -11); ctx.lineTo(62, 0); ctx.lineTo(50, 11); ctx.closePath(); ctx.fill();
+      }
+      // Transparent hull number moved forward along the fuselage.
+      ctx.beginPath(); ctx.arc(-20, -24, 8, 0, Math.PI * 2);
+      ctx.strokeStyle = lives > 0 ? '#d9f6e5' : '#ffc6cc'; ctx.lineWidth = 1.2; ctx.stroke();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 10px system-ui'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(String(lives), -20, -24);
+      ctx.restore();
+    }
+    function drawPowerUp(powerUp) {
+      const pulse = .82 + Math.sin(powerUp.phase) * .18;
+      ctx.save(); ctx.translate(powerUp.x, powerUp.y);
+      ctx.shadowColor = '#68d9ff'; ctx.shadowBlur = 15 * pulse;
+      ctx.fillStyle = '#208fda'; ctx.beginPath(); ctx.arc(0, 0, 11 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0; ctx.strokeStyle = '#d8f8ff'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(-5, 0); ctx.lineTo(5, 0); ctx.moveTo(0, -5); ctx.lineTo(0, 5); ctx.stroke();
+      ctx.restore();
+    }
+    function drawEnemyFighter(fighter) {
+      ctx.save(); ctx.translate(fighter.x, fighter.y);
+      if (fighterSprite.complete && fighterSprite.naturalWidth) {
+        ctx.drawImage(fighterSprite, 0, fighterSprite.naturalHeight * .12, fighterSprite.naturalWidth, fighterSprite.naturalHeight * .62, -32, -12, 64, 25);
+      } else {
+        ctx.fillStyle = '#65706a'; ctx.beginPath(); ctx.moveTo(-70, 0); ctx.lineTo(65, -14); ctx.lineTo(76, 0); ctx.lineTo(65, 14); ctx.closePath(); ctx.fill();
+      }
+      ctx.restore();
+    }
+    function drawBlimp() {
+      if (!blimp.alive) return;
+      ctx.save(); ctx.translate(blimp.x, blimp.y);
+      if (level === 2) ctx.filter = 'brightness(.72) saturate(.8)';
+      if (blimpSpriteSheet.complete && blimpSpriteSheet.naturalWidth) {
+        // Five hand-aligned source windows: left, three turning poses, and right.
+        const frames = [[0,.245],[.24,.215],[.43,.15],[.57,.20],[.76,.24]];
+        const [start, width] = frames[blimp.frame];
+        const sourceY = blimpSpriteSheet.naturalHeight * .22;
+        const sourceH = blimpSpriteSheet.naturalHeight * .57;
+        ctx.drawImage(blimpSpriteSheet, blimpSpriteSheet.naturalWidth * start, sourceY, blimpSpriteSheet.naturalWidth * width, sourceH, -70, -35, 140, 70);
+      } else {
+        ctx.fillStyle = '#e9f4f8'; ctx.beginPath(); ctx.ellipse(0, 0, 54, 22, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.restore();
+    }
+    function loseHullPoint() {
+      if (dead) return;
+      playDamageSound();
+      lives--; plane.invulnerable = 75;
+      explosions.push({ x: plane.x, y: plane.y, age: 0 });
+      if (lives <= 0) { dead = true; status.textContent = 'Hull depleted — mission failed.'; }
+      return true;
+    }
+    function hitPlane() {
+      if (!loseHullPoint()) return;
+      dead = true; status.textContent = 'Hull hit — mission failed.';
+    }
+    function crashPlaneIntoBlimp() {
+      if (dead) return;
+      lives = 0; dead = true;
+      explosions.push({ x: plane.x, y: plane.y, age: 0 });
+      playExplosionSound();
+      status.textContent = 'Collision with the blimp — mission failed.';
+    }
+    function queueBlimpReturn() {
+      const destroyedBlimp = blimp;
+      setTimeout(() => {
+        if (blimp !== destroyedBlimp || dead || bossFortSpawned) return;
+        const fromLeft = Math.random() < .5;
+        blimp = createBlimp(fromLeft ? -80 : W + 80, 85 + Math.random() * 190, fromLeft ? 1.25 : -1.25, Math.random() < .5 ? -.78 : .78, true);
+      }, 1000);
+    }
+    function crashPlaneIntoFighter() {
+      if (dead) return;
+      lives = 0; dead = true;
+      explosions.push({ x: plane.x, y: plane.y, age: 0 });
+      playExplosionSound();
+      status.textContent = 'Collision with an enemy fighter — mission failed.';
+    }
+    function hitsBomber(x, y, radius = 22) {
+      // A capsule follows the fuselage from the tail to the nose, rather than using a
+      // single circle centered on the cockpit. This lets shots damage the tail too.
+      const closestX = Math.max(plane.x - 60, Math.min(x, plane.x + 55));
+      return Math.hypot(x - closestX, y - plane.y) < radius;
+    }
+    function update() {
+      updateEngineSound();
+      updateEnemyPlaneSound();
+      const ay = (keys.ArrowDown || keys.s ? 1 : 0) - (keys.ArrowUp || keys.w ? 1 : 0);
+      const ax = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);
+      if (waitingToStart || won || dead || paused) return;
+      // The bomber can be positioned freely while the side-scrolling world cruises onward.
+      plane.x = Math.max(80, Math.min(W - 80, plane.x + ax * 3.2));
+      plane.vy = plane.vy * .82 + ay * .75;
+      scrollOffset += GROUND_SCROLL_SPEED;
+      plane.y = Math.max(45, Math.min(ground - 85, plane.y + plane.vy));
+      tanks.forEach(tank => {
+        if (!tank.alive) return;
+        if (tank.red) {
+          // The raider drives toward the bomber, but stops short instead of passing beneath it.
+          const distanceToBomber = plane.x - tank.x;
+          if (Math.abs(distanceToBomber) > 70) tank.x += Math.sign(distanceToBomber) * (GROUND_SCROLL_SPEED + tank.speed) * .7;
+        } else {
+          // Standard tanks travel with the scrolling terrain, plus their own ground speed.
+          tank.x -= GROUND_SCROLL_SPEED + tank.speed;
+        }
+        if (tank.x < -55) tank.alive = false;
+        tank.y = terrainY(tank.x) - 23;
+        tank.slopeAngle = Math.atan2(terrainY(tank.x + 10) - terrainY(tank.x - 10), 20);
+        const turretX = tank.x, turretY = tank.y - 9;
+        tank.angle = Math.atan2(plane.y - turretY, plane.x - turretX);
+        if (--tank.fireCooldown <= 0) {
+          const shotSpeed = 2.65;
+          tankShots.push({ source: 'tank', x: turretX + Math.cos(tank.angle) * 24, y: turretY + Math.sin(tank.angle) * 24, vx: Math.cos(tank.angle) * shotSpeed, vy: Math.sin(tank.angle) * shotSpeed });
+          playEnemyShotSound();
+          tank.fireCooldown = tank.red ? 90 : 180;
+        }
+      });
+      tanks = tanks.filter(tank => tank.alive);
+      while (tanks.filter(tank => !tank.red).length < 3) tanks.push(createTank());
+      if (!tanks.some(tank => tank.red) && --redTankTimer <= 0) {
+        tanks.push(createTank(W + 90 + Math.random() * 220, true));
+        redTankTimer = 480 + Math.floor(Math.random() * 240);
+      }
+      if (!powerUps.length && --powerUpTimer <= 0) {
+        powerUps.push({ x: W + 30, y: 70 + Math.random() * (ground - 190), phase: Math.random() * Math.PI * 2 });
+        powerUpTimer = 620 + Math.floor(Math.random() * 360);
+      }
+      powerUps.forEach(powerUp => { powerUp.x -= GROUND_SCROLL_SPEED; powerUp.phase += .12; });
+      powerUps = powerUps.filter(powerUp => {
+        if (hitsBomber(powerUp.x, powerUp.y, 34)) {
+          lives = Math.min(MAX_HULL, lives + 1);
+          explosions.push({ x: powerUp.x, y: powerUp.y, age: 0 });
+          playPickupSound();
+          return false;
+        }
+        return powerUp.x > -30;
+      });
+      if (!enemyFighters.length && --fighterTimer <= 0) {
+        enemyFighters.push({
+          x: W + 100,
+          baseY: 90 + Math.random() * (ground - 210),
+          y: 0,
+          phase: Math.random() * Math.PI * 2,
+          age: 0,
+          speed: 5.4,
+          fireCooldown: 42,
+          alive: true
+        });
+        playEnemyPlaneSound();
+        fighterTimer = 620 + Math.floor(Math.random() * 360);
+      }
+      enemyFighters.forEach(fighter => {
+        fighter.age++;
+        fighter.x -= fighter.speed;
+        fighter.baseY += (plane.y - fighter.baseY) * .004;
+        fighter.baseY = Math.max(60, Math.min(ground - 80, fighter.baseY));
+        fighter.y = fighter.baseY + Math.sin(fighter.age * .022 + fighter.phase) * 38;
+        if (Math.abs(fighter.x - plane.x) < 94 && Math.abs(fighter.y - plane.y) < 34) crashPlaneIntoFighter();
+        if (--fighter.fireCooldown <= 0) {
+          enemyShots.push({ x: fighter.x - 32, y: fighter.y, vx: -9, vy: 0 });
+          playEnemyShotSound();
+          fighter.fireCooldown = 52;
+        }
+      });
+      enemyFighters = enemyFighters.filter(fighter => fighter.alive && fighter.x > -100);
+      if (!bossFortSpawned) {
+        if (!barn.alive) {
+          if (score < BOSS_TRIGGER && --barn.respawnTimer <= 0) { barn.alive = true; barn.x = W + 550 + Math.random() * 500; barn.fireCooldown = 85; }
+        } else {
+          barn.x -= GROUND_SCROLL_SPEED;
+          if (barn.x < -80) {
+            if (score >= BOSS_TRIGGER) barn.alive = false;
+            else { barn.x = W + 550 + Math.random() * 500; barn.fireCooldown = 85; }
+          }
+        }
+        if (barn.alive && barn.x > -60 && barn.x < W + 60) {
+          const barnY = barnBaseY() - 82 * BARN_SCALE;
+          barn.angle = Math.atan2(plane.y - barnY, plane.x - barn.x);
+          if (--barn.fireCooldown <= 0) {
+            const shotSpeed = 2.65;
+            tankShots.push({ source: 'barn', x: barn.x + Math.cos(barn.angle) * 27, y: barnY + Math.sin(barn.angle) * 27, vx: Math.cos(barn.angle) * shotSpeed, vy: Math.sin(barn.angle) * shotSpeed });
+            playEnemyShotSound();
+            barn.fireCooldown = 85;
+          }
+        }
+      } else if (bossFort.barns.some(section => section.alive)) {
+        bossFort.x -= GROUND_SCROLL_SPEED;
+        if (bossFort.x < -bossFort.width) {
+          bossFort.x = W + 210;
+          const rebuiltBarn = bossFort.barns.find(section => !section.alive);
+          if (rebuiltBarn) { rebuiltBarn.alive = true; rebuiltBarn.fireCooldown = 85; }
+        }
+        bossFort.barns.forEach(section => {
+          if (!section.alive) return;
+          const x = bossFort.x + section.offset;
+          const y = bossBarnBaseY(section) - 82 * BARN_SCALE;
+          section.angle = Math.atan2(plane.y - y, plane.x - x);
+          if (x > -60 && x < W + 60 && --section.fireCooldown <= 0) {
+            const shotSpeed = 2.65;
+            tankShots.push({ source: 'fort', x: x + Math.cos(section.angle) * 27, y: y + Math.sin(section.angle) * 27, vx: Math.cos(section.angle) * shotSpeed, vy: Math.sin(section.angle) * shotSpeed });
+            playEnemyShotSound();
+            section.fireCooldown = 85;
+          }
+        });
+      }
+      if (plane.cooldown) plane.cooldown--; if (plane.invulnerable) plane.invulnerable--;
+      const previousBlimpX = blimp.x;
+      blimp.x += blimp.vx;
+      blimp.y += blimp.vy;
+      if (blimp.entering && ((blimp.vx < 0 && blimp.x <= W - 85) || (blimp.vx > 0 && blimp.x >= 85))) blimp.entering = false;
+      if (blimp.leaving && (blimp.x < -100 || blimp.x > W + 100)) blimp.alive = false;
+      if (!blimp.leaving && !blimp.entering && blimp.x < 85) { blimp.x = 85; blimp.vx = Math.abs(blimp.vx); }
+      if (!blimp.leaving && !blimp.entering && blimp.x > W - 85) { blimp.x = W - 85; blimp.vx = -Math.abs(blimp.vx); }
+      if (!blimp.leaving && blimp.y < 55) { blimp.y = 55; blimp.vy = Math.abs(blimp.vy); }
+      if (!blimp.leaving && blimp.y > ground - 55) { blimp.y = ground - 55; blimp.vy = -Math.abs(blimp.vy); }
+      const desiredFacing = blimp.x >= previousBlimpX ? 1 : -1;
+      if (desiredFacing !== blimp.facing && !blimp.turning) { blimp.turning = true; blimp.turnProgress = 0; blimp.turnTick = 0; }
+      if (blimp.turning) {
+        if (++blimp.turnTick >= 6) { blimp.turnTick = 0; blimp.turnProgress++; }
+        blimp.frame = blimp.facing === 1 ? Math.min(4, 1 + blimp.turnProgress) : Math.max(0, 3 - blimp.turnProgress);
+        if (blimp.turnProgress >= 3) { blimp.facing = desiredFacing; blimp.turning = false; blimp.frame = blimp.facing === 1 ? 0 : 4; }
+      } else {
+        blimp.frame = blimp.facing === 1 ? 0 : 4;
+      }
+      if (blimp.alive && Math.abs(plane.x - blimp.x) < 110 && Math.abs(plane.y - blimp.y) < 45) crashPlaneIntoBlimp();
+      if (blimp.alive && !blimp.leaving && --blimp.fireCooldown <= 0) {
+        const dx = plane.x - blimp.x, dy = plane.y - (blimp.y + 26), length = Math.hypot(dx, dy) || 1;
+        enemyShots.push({ x: blimp.x, y: blimp.y + 26, vx: dx / length * 3.3, vy: dy / length * 3.3 });
+        playEnemyShotSound();
+        blimp.fireCooldown = 105;
+      }
+      enemyShots.forEach(shot => { shot.x += shot.vx; shot.y += shot.vy; });
+      enemyShots = enemyShots.filter(shot => {
+        if (hitsBomber(shot.x, shot.y)) { loseHullPoint(); return false; }
+        return shot.x > -20 && shot.x < W + 20 && shot.y > -20 && shot.y < H + 20;
+      });
+      tankShots.forEach(shot => { shot.x += shot.vx; shot.y += shot.vy; });
+      tankShots = tankShots.filter(shot => {
+        if (hitsBomber(shot.x, shot.y)) { loseHullPoint(); return false; }
+        return shot.x > -20 && shot.x < W + 20 && shot.y > -20 && shot.y < H + 20;
+      });
+      bombs.forEach(b => {
+        b.x += b.vx; b.y += b.vy; b.vx *= .993; b.vy += .098;
+        // Rotate clockwise in flight, stopping upright to match the source art.
+        b.angle = Math.min(0, b.angle + .012);
+      });
+      bombs = bombs.filter(b => {
+        const hit = tanks.find(t => t.alive && Math.abs(t.x - b.x) < 27 && Math.abs(t.y - b.y) < 22);
+        const fighterHit = enemyFighters.find(fighter => fighter.alive && Math.abs(fighter.x - b.x) < 40 && Math.abs(fighter.y - b.y) < 24);
+        const blimpHit = blimp.alive && Math.abs(blimp.x - b.x) < 77 && Math.abs(blimp.y - b.y) < 43;
+        const terrainAtBomb = terrainY(b.x);
+        const barnHit = barn.alive && Math.abs(barn.x - b.x) < 48 * BARN_SCALE && b.y > barnBaseY() - 116 * BARN_SCALE && b.y < barnBaseY() + 5;
+        const bossBarnHit = bossFort && bossFort.barns.find(section => section.alive && Math.abs(bossFort.x + section.offset - b.x) < 48 * BARN_SCALE && b.y > bossBarnBaseY(section) - 116 * BARN_SCALE && b.y < bossBarnBaseY(section) + 5);
+        if (hit || fighterHit || blimpHit || barnHit || bossBarnHit || b.y >= terrainAtBomb) {
+          stopBombSound(b);
+          explosions.push({ x: b.x, y: Math.min(b.y, terrainAtBomb), age: 0 });
+          if (hit || fighterHit || blimpHit || barnHit || bossBarnHit) playExplosionSound();
+          if (hit) { hit.alive = false; score += hit.red ? 20 : 10; }
+          if (fighterHit) { fighterHit.alive = false; score += 30; }
+          if (blimpHit) { blimp.alive = false; queueBlimpReturn(); score += 20; }
+          if (barnHit) { barn.alive = false; barn.respawnTimer = 260; score += 10; }
+          if (bossBarnHit) { bossBarnHit.alive = false; score += 10; }
+          return false;
+        }
+        return true;
+      });
+      if (!bossFortSpawned && score >= BOSS_TRIGGER) {
+        if (!barn.alive) {
+          if (bossFortTimer < 0) bossFortTimer = 120;
+          else if (--bossFortTimer <= 0) {
+            bossFort = createBossFort();
+            bossFortSpawned = true;
+            blimp.leaving = true;
+            blimp.vx = blimp.x < W / 2 ? -1.45 : 1.45;
+            blimp.vy = -.08;
+          }
+        }
+      }
+      explosions.forEach(e => e.age++); explosions = explosions.filter(e => e.age < 28);
+      const bossDefeated = bossFortSpawned && bossFort.barns.every(section => !section.alive);
+      if (bossDefeated) {
+        won = true;
+        bombs = [];
+        enemyShots = [];
+        tankShots = [];
+        status.textContent = `Mission complete! Score: ${score}`;
+      } else if (!won) {
+        if (bossFortTimer >= 0 && !bossFortSpawned) status.textContent = 'Boss fort incoming...';
+        else status.textContent = `Level ${level} · Score: ${score} · Hull: ${lives} · Boss: ${BOSS_TRIGGER}`;
+      }
+    }
+    function drawIntroEnemy(type, x, y, label, points) {
+      ctx.fillStyle = '#17364dcc'; ctx.fillRect(x - 105, y - 65, 210, 140);
+      ctx.strokeStyle = '#71b9dc'; ctx.lineWidth = 2; ctx.strokeRect(x - 105, y - 65, 210, 140);
+      ctx.save(); ctx.translate(x, y - 10); ctx.scale(.8, .8);
+      if (type === 'tank') {
+        ctx.fillStyle = '#1d5b39'; ctx.fillRect(-32, -4, 64, 16); ctx.fillStyle = '#143d28'; ctx.fillRect(-38, 12, 76, 10); ctx.fillStyle = '#3f9861'; ctx.fillRect(-13, -17, 26, 15); ctx.fillStyle = '#163f29'; ctx.fillRect(0, -13, 36, 5);
+      } else if (type === 'red-tank') {
+        ctx.fillStyle = '#a83c38'; ctx.fillRect(-32, -4, 64, 16); ctx.fillStyle = '#682829'; ctx.fillRect(-38, 12, 76, 10); ctx.fillStyle = '#e26550'; ctx.fillRect(-13, -17, 26, 15); ctx.fillStyle = '#5b2324'; ctx.fillRect(0, -13, 36, 5);
+      } else if (type === 'barn' || type === 'fort') {
+        ctx.fillStyle = type === 'fort' ? '#f2f5f1' : '#9a3f35'; ctx.fillRect(-33, -4, 66, 45);
+        ctx.fillStyle = type === 'fort' ? '#4b555a' : '#6c2929'; ctx.beginPath(); ctx.moveTo(-41,-4); ctx.lineTo(0,-39); ctx.lineTo(41,-4); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#e4b268'; ctx.fillRect(-9, 12, 18, 29); ctx.fillStyle = '#26313d'; ctx.fillRect(0, -18, 29, 5);
+      } else if (type === 'blimp') {
+        if (blimpSpriteSheet.complete && blimpSpriteSheet.naturalWidth) {
+          const sourceY = blimpSpriteSheet.naturalHeight * .22;
+          const sourceH = blimpSpriteSheet.naturalHeight * .57;
+          ctx.drawImage(blimpSpriteSheet, 0, sourceY, blimpSpriteSheet.naturalWidth * .245, sourceH, -58, -29, 116, 58);
+        } else { ctx.fillStyle = '#c1d7df'; ctx.beginPath(); ctx.ellipse(0, 0, 52, 21, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = '#6c8792'; ctx.fillRect(-8, 18, 22, 9); }
+      } else {
+        if (fighterSprite.complete && fighterSprite.naturalWidth) {
+          ctx.drawImage(fighterSprite, 0, fighterSprite.naturalHeight * .12, fighterSprite.naturalWidth, fighterSprite.naturalHeight * .62, -52, -20, 104, 41);
+        } else { ctx.fillStyle = '#65706a'; ctx.beginPath(); ctx.moveTo(-52,0); ctx.lineTo(43,-12); ctx.lineTo(56,0); ctx.lineTo(43,12); ctx.closePath(); ctx.fill(); }
+      }
+      ctx.restore();
+      ctx.fillStyle = '#fff'; ctx.font = 'bold 15px system-ui'; ctx.textAlign = 'center'; ctx.fillText(label, x, y + 38);
+      ctx.fillStyle = '#f5d16c'; ctx.font = 'bold 18px system-ui'; ctx.fillText(`${points} POINTS`, x, y + 56);
+    }
+
+    function render() {
+      ctx.setTransform(DISPLAY_SCALE, 0, 0, DISPLAY_SCALE, 0, 0);
+      if (waitingToStart) {
+        const briefing = ctx.createLinearGradient(0, 0, 0, H);
+        briefing.addColorStop(0, '#4ba6d4'); briefing.addColorStop(1, '#102238');
+        ctx.fillStyle = briefing; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.font = 'bold 42px system-ui'; ctx.fillText('SKY STRIKE', W / 2, 62);
+        ctx.fillStyle = '#d9f1ff'; ctx.font = 'bold 20px system-ui'; ctx.fillText('MISSION BRIEFING', W / 2, 96);
+        drawIntroEnemy('tank', 150, 175, 'GREEN TANK', 10);
+        drawIntroEnemy('red-tank', 390, 175, 'RED TANK', 20);
+        drawIntroEnemy('barn', 630, 175, 'BARN', 10);
+        drawIntroEnemy('blimp', 150, 345, 'BLIMP', 20);
+        drawIntroEnemy('raider', 390, 345, 'RAIDER', 30);
+        drawIntroEnemy('fort', 630, 345, 'BOSS BARN', 10);
+        ctx.fillStyle = '#d9f1ff'; ctx.font = 'bold 18px system-ui'; ctx.fillText('At 150 points, destroy the Boss Barn to clear the level.', W / 2, 520);
+        ctx.fillStyle = '#fff'; ctx.font = 'bold 22px system-ui'; ctx.fillText('Press N or New mission to start', W / 2, 565);
+        return;
+      }
+      const sky = ctx.createLinearGradient(0,0,0,ground);
+      if (level === 2) { sky.addColorStop(0, '#071326'); sky.addColorStop(1, '#315276'); }
+      else { sky.addColorStop(0, '#4ba6d4'); sky.addColorStop(1, '#c9eced'); }
+      ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+      if (level === 2) {
+        ctx.fillStyle = '#e8f5ff';
+        [[90,72],[205,138],[350,58],[510,155],[670,83],[815,142],[910,47]].forEach(([x, y]) => ctx.fillRect(x, y, 3, 3));
+        ctx.beginPath(); ctx.arc(815, 78, 27, 0, Math.PI * 2); ctx.fill();
+      }
+      const cloudX = (base, rate) => ((base - scrollOffset * rate + W + 140) % (W + 280)) - 140;
+      ctx.save(); ctx.globalAlpha = level === 2 ? .28 : 1;
+      if (level === 2) ctx.filter = 'brightness(.72) saturate(.8)';
+      drawCloud(cloudX(120,.12),75,.7); drawCloud(cloudX(660,.18),115,1); drawCloud(cloudX(400,.08),205,.5);
+      ctx.restore();
+      ctx.fillStyle = '#6c9b4e'; ctx.beginPath(); ctx.moveTo(0,H);
+      for (let x = 0; x <= W; x += 12) ctx.lineTo(x, terrainY(x));
+      ctx.lineTo(W,H); ctx.closePath(); ctx.fill();
+      const treeX = base => (((base - scrollOffset + W + 140) % (W + 280) + (W + 280)) % (W + 280)) - 140;
+      drawBarn();
+      if (bossFort) {
+        bossFort.barns.forEach(drawBossFortBarn);
+        bossFort.barns.forEach(drawBossFortTowerGun);
+      }
+      [[90,.72],[285,1.05],[510,.8],[730,1.15],[920,.68]].forEach(([x, size]) => { const xPos = treeX(x); drawPine(xPos, terrainY(xPos) + 9, size); });
+      tanks.forEach(drawTank); drawBlimp(); enemyFighters.forEach(drawEnemyFighter); powerUps.forEach(drawPowerUp); drawPlane();
+      bombs.forEach(b => {
+        ctx.save(); ctx.translate(b.x, b.y); ctx.rotate(b.angle);
+        if (bombSprite.complete && bombSprite.naturalWidth) {
+          ctx.filter = 'grayscale(.25) sepia(.95) saturate(1.25) hue-rotate(352deg) brightness(.86)';
+          ctx.drawImage(bombSprite, -10, -16, 20, 32);
+          ctx.filter = 'none';
+        } else { ctx.fillStyle='#87583f'; ctx.beginPath(); ctx.ellipse(0,0,5,10,0,0,Math.PI*2); ctx.fill(); }
+        ctx.restore();
+      });
+      enemyShots.forEach(shot => { ctx.fillStyle='#87583f'; ctx.beginPath(); ctx.arc(shot.x,shot.y,5,0,Math.PI*2); ctx.fill(); });
+      tankShots.forEach(shot => { ctx.fillStyle='#87583f'; ctx.beginPath(); ctx.arc(shot.x,shot.y,5,0,Math.PI*2); ctx.fill(); });
+      const foregroundTreeX = treeX(1090);
+      drawPine(foregroundTreeX, (terrainY(foregroundTreeX) + H) / 2, 1.5);
+      explosions.forEach(e => { const r = 10 + e.age*1.9; ctx.fillStyle = `rgba(255,${180-e.age*4},40,${1-e.age/28})`; ctx.beginPath(); ctx.arc(e.x,e.y,r,0,Math.PI*2); ctx.fill(); });
+      if (won) { ctx.fillStyle='#102238bd'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='bold 42px system-ui'; ctx.textAlign='center'; ctx.fillText(level === 1 ? 'LEVEL 1 COMPLETE!' : 'MISSION COMPLETE!',W/2,H/2); ctx.font='22px system-ui'; ctx.fillText(level === 1 ? 'Press New mission for Level 2' : 'Press New mission to fly again',W/2,H/2+42); }
+      if (dead) { ctx.fillStyle='#271321c9'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='bold 42px system-ui'; ctx.textAlign='center'; ctx.fillText('PLANE DOWN',W/2,H/2); ctx.font='22px system-ui'; ctx.fillText(`Final score: ${score}. Press New mission to retry.`,W/2,H/2+42); }
+      if (paused) { ctx.fillStyle='#102238ae'; ctx.fillRect(0,0,W,H); ctx.fillStyle='#fff'; ctx.font='bold 42px system-ui'; ctx.textAlign='center'; ctx.fillText('PAUSED',W/2,H/2); ctx.font='22px system-ui'; ctx.fillText('Press P to resume',W/2,H/2+42); }
+    }
+    function loop() { update(); render(); requestAnimationFrame(loop); }
+    addEventListener('keydown', e => {
+      if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' ','w','s'].includes(e.key)) e.preventDefault();
+      if (e.key.toLowerCase() === 'n' && !e.repeat) { newMission(won && level === 1 ? 2 : 1); return; }
+      if (e.key.toLowerCase() === 'b' && !e.repeat && !waitingToStart && !won && !dead) { score = 150; return; }
+      if (e.key.toLowerCase() === 'p' && !e.repeat && !won && !dead) { paused = !paused; status.textContent = paused ? 'Paused — press P to resume.' : 'Mission resumed.'; return; }
+      if (e.key === ' ') dropBomb(); keys[e.key] = true; keys[e.key.toLowerCase()] = true;
+    });
+    addEventListener('keyup', e => { keys[e.key] = false; keys[e.key.toLowerCase()] = false; });
+    [['slower','ArrowLeft'],['faster','ArrowRight'],['up','ArrowUp'],['down','ArrowDown']].forEach(([id,key]) => { const b=document.querySelector('#'+id); ['pointerdown','pointerup','pointerleave'].forEach(type => b.addEventListener(type, e => { e.preventDefault(); keys[key] = type === 'pointerdown'; })); });
+    document.querySelector('#bomb').addEventListener('click', dropBomb);
+    document.querySelector('#reset').addEventListener('click', () => newMission(won && level === 1 ? 2 : 1));
+    document.querySelector('#help').addEventListener('click', () => {
+      const panel = document.querySelector('#help-panel');
+      panel.hidden = !panel.hidden;
+      document.querySelector('#help').setAttribute('aria-expanded', String(!panel.hidden));
+    });
+    loop();
+  </script>
+</body>
+</html>

@@ -1,11 +1,198 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <!-- Redirects instantly (0 seconds) to the target URL -->
-    <meta http-equiv="refresh" content="0; url=https://dave55408.github.io/Sketch/drawing_app/drawing.html">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Projects · .codex</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #10151d;
+      color: #eef2f7;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 0%, #263650 0, transparent 34rem),
+        radial-gradient(circle at 100% 85%, #1e3437 0, transparent 32rem),
+        #10151d;
+    }
+    main { width: min(1120px, 100%); margin: 0 auto; padding: clamp(24px, 5vw, 64px) 20px 80px; }
+    header { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 30px; }
+    .eyebrow { margin: 0 0 10px; color: #8ed9c8; font: 700 12px/1.4 ui-monospace, monospace; letter-spacing: .18em; text-transform: uppercase; }
+    h1 { margin: 0; font-size: clamp(36px, 6vw, 68px); line-height: 1; letter-spacing: -.055em; }
+    .intro { max-width: 650px; margin: 18px 0 0; color: #bac5d2; line-height: 1.6; }
+    .count { flex: none; border: 1px solid #425168; border-radius: 999px; padding: 9px 14px; color: #c8d5e4; font-size: 13px; white-space: nowrap; }
+    .toolbar { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    label { color: #c8d5e4; font-size: 13px; font-weight: 700; }
+    input {
+      width: min(420px, 100%);
+      min-height: 42px;
+      border: 1px solid #4a5a70;
+      border-radius: 9px;
+      padding: 10px 13px;
+      background: #18222f;
+      color: #fff;
+      font: inherit;
+    }
+    input::placeholder { color: #93a0b2; }
+    input:focus-visible, a:focus-visible { outline: 3px solid #8ed9c8; outline-offset: 3px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 15px; }
+    .card {
+      --accent: #8ed9c8;
+      display: flex;
+      flex-direction: column;
+      min-height: 188px;
+      border: 1px solid #35445a;
+      border-top: 4px solid var(--accent);
+      border-radius: 12px;
+      padding: 20px;
+      background: #192330e8;
+      box-shadow: 0 12px 32px #0002;
+    }
+    .card[data-kind="game"] { --accent: #f0bd78; }
+    .card[data-kind="art"] { --accent: #b9a9f6; }
+    .card[data-kind="tool"] { --accent: #8ed9c8; }
+    .card h2 { margin: 0 0 8px; font-size: 20px; line-height: 1.2; }
+    .card p { margin: 0 0 17px; color: #b5c2d0; font-size: 14px; line-height: 1.5; }
+    .card .path { display: block; margin: auto 0 13px; color: #8fa0b4; font: 12px/1.4 ui-monospace, monospace; overflow-wrap: anywhere; }
+    .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: auto; }
+    .links a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 36px;
+      border: 1px solid color-mix(in srgb, var(--accent) 55%, #243243);
+      border-radius: 7px;
+      padding: 7px 11px;
+      color: #f5f8fb;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+    .links a:hover { background: color-mix(in srgb, var(--accent) 18%, #192330); }
+    .empty-note { margin: 18px 0 0; color: #b5c2d0; }
+    .empty-note[hidden], .card[hidden] { display: none; }
+    @media (max-width: 650px) {
+      header { display: block; }
+      .count { display: inline-block; margin-top: 20px; }
+      .toolbar { display: block; }
+      label { display: block; margin-bottom: 8px; }
+      input { width: 100%; }
+    }
+  </style>
 </head>
 <body>
-    <p>If you are not redirected automatically, follow this <a href="https://dave55408.github.io/Sketch/drawing_app/drawing.html">link</a>.</p>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">.codex / local projects</p>
+        <h1>Project Library</h1>
+        <p class="intro">Open a project directly from this folder. Each link is relative, so this page works from a local file or a local web server.</p>
+      </div>
+      <span class="count" id="count">12 project folders</span>
+    </header>
+
+    <div class="toolbar">
+      <label for="search">Find a project</label>
+      <input id="search" type="search" placeholder="Search by name or folder" autocomplete="off">
+    </div>
+
+    <div class="grid" id="projects">
+      <article class="card" data-kind="tool">
+        <h2>Add Two Numbers</h2>
+        <p>A small number adding page.</p>
+        <span class="path">add-two-numbers/</span>
+        <div class="links"><a href="./add-two-numbers/index.html">Open project</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Asteroids</h2>
+        <p>The game in the asteroid-game folder.</p>
+        <span class="path">asteroid-game/</span>
+        <div class="links">
+          <a href="./asteroid-game/asteroids_index.html">Asteroids</a>
+        </div>
+      </article>
+      <article class="card" data-kind="tool">
+        <h2>String Mapper</h2>
+        <p>The page in the biplane-game folder.</p>
+        <span class="path">biplane-game/</span>
+        <div class="links"><a href="./biplane-game/index.html">Open project</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Boss Barn Banking Run</h2>
+        <p>A banking themed game.</p>
+        <span class="path">boss-barn-banking-game/</span>
+        <div class="links"><a href="./boss-barn-banking-game/index.html">Play game</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Maze Runner GT</h2>
+        <p>A car maze game.</p>
+        <span class="path">car-maze/</span>
+        <div class="links"><a href="./car-maze/index.html">Play game</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Chalice Quest</h2>
+        <p>Explore castles, mazes, and dungeons.</p>
+        <span class="path">chalice-quest/</span>
+        <div class="links"><a href="./chalice-quest/index.html">Play game</a></div>
+      </article>
+      <article class="card" data-kind="art">
+        <h2>Sketch Pad</h2>
+        <p>Draw in the browser.</p>
+        <span class="path">drawing_app/</span>
+        <div class="links"><a href="./drawing_app/drawing.html">Open project</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Skyfire Jets</h2>
+        <p>A jet dogfight game.</p>
+        <span class="path">jet-dogfight/</span>
+        <div class="links"><a href="./jet-dogfight/index.html">Play game</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Memory Match</h2>
+        <p>A memory matching game.</p>
+        <span class="path">memory-game/</span>
+        <div class="links"><a href="./memory-game/index.html">Play game</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Ostrich Fight</h2>
+        <p>An ostrich jousting game.</p>
+        <span class="path">ostrich-joust/</span>
+        <div class="links"><a href="./ostrich-joust/index.html">Play game</a></div>
+      </article>
+      <article class="card" data-kind="game">
+        <h2>Sky Strike</h2>
+        <p>A plane bombing game.</p>
+        <span class="path">plane-bombing-game/</span>
+        <div class="links"><a href="./plane-bombing-game/index.html">Play game</a></div>
+      </article>
+      <article class="card" data-kind="art">
+        <h2>Stars</h2>
+        <p>A starfield canvas page.</p>
+        <span class="path">stars/</span>
+        <div class="links"><a href="./stars/index.html">Open project</a></div>
+      </article>
+    </div>
+    <p class="empty-note" id="empty" hidden>No projects match that search.</p>
+  </main>
+  <script>
+    const search = document.getElementById('search');
+    const cards = [...document.querySelectorAll('.card')];
+    const count = document.getElementById('count');
+    const empty = document.getElementById('empty');
+    search.addEventListener('input', () => {
+      const query = search.value.trim().toLowerCase();
+      let visible = 0;
+      for (const card of cards) {
+        card.hidden = !card.textContent.toLowerCase().includes(query);
+        if (!card.hidden) visible++;
+      }
+      count.textContent = `${visible} of ${cards.length} project folders`;
+      empty.hidden = visible !== 0;
+    });
+  </script>
 </body>
 </html>
-

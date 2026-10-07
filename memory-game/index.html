@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Match</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --text: #e5eefb;
+      --muted: #9fb0c9;
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top, rgba(56, 189, 248, 0.2), transparent 28%),
+        linear-gradient(180deg, #111827 0%, #0f172a 100%);
+    }
+
+    .game {
+      width: min(100%, 760px);
+      background: rgba(17, 24, 39, 0.92);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      padding: 28px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(28px, 5vw, 40px);
+    }
+
+    .subtext {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .stats {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .stat,
+    .win-banner {
+      padding: 12px 16px;
+      border-radius: 14px;
+      background: var(--panel-2);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .win-banner {
+      display: none;
+      background: rgba(34, 197, 94, 0.16);
+      border-color: rgba(34, 197, 94, 0.35);
+      color: #dcfce7;
+      margin-bottom: 18px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .win-banner.show {
+      display: block;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 12px 18px;
+      background: linear-gradient(135deg, var(--accent), #6366f1);
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.95;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .card {
+      border: 0;
+      padding: 0;
+      width: 100%;
+      background: transparent;
+      border-radius: var(--radius);
+      aspect-ratio: 1 / 1;
+      perspective: 1000px;
+      cursor: pointer;
+    }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.45s ease;
+    }
+
+    .card.flipped .card-inner,
+    .card.matched .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    .face {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      border-radius: var(--radius);
+      backface-visibility: hidden;
+      user-select: none;
+      font-size: clamp(28px, 5vw, 42px);
+    }
+
+    .front {
+      background: linear-gradient(145deg, #1e293b, #334155);
+      border: 1px solid rgba(148, 163, 184, 0.18);
+    }
+
+    .front::before {
+      content: "?";
+      font-size: clamp(24px, 4vw, 34px);
+      color: #cbd5e1;
+      font-weight: bold;
+    }
+
+    .back {
+      transform: rotateY(180deg);
+      background: linear-gradient(145deg, #0ea5e9, #2563eb);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+    }
+
+    .card.matched .back {
+      background: linear-gradient(145deg, #22c55e, #16a34a);
+    }
+
+    @media (max-width: 560px) {
+      .game {
+        padding: 18px;
+      }
+
+      .grid {
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="game">
+    <div class="header">
+      <div>
+        <h1>Memory Match</h1>
+        <p class="subtext">Find all 8 matching emoji pairs.</p>
+      </div>
+      <div class="stats">
+        <div class="stat">Moves: <span id="moves">0</span></div>
+        <div class="stat">Matches: <span id="matches">0</span>/8</div>
+      </div>
+    </div>
+
+    <div class="win-banner" id="win-banner">You win!</div>
+
+    <div class="controls">
+      <button id="reset-btn" type="button">Restart Game</button>
+    </div>
+
+    <section class="grid" id="grid" aria-label="Memory game board"></section>
+  </main>
+
+  <script>
+    const emojis = ["🍕", "🚀", "🎵", "🌟", "🐶", "⚽", "🍎", "🎲"];
+    const grid = document.getElementById("grid");
+    const movesEl = document.getElementById("moves");
+    const matchesEl = document.getElementById("matches");
+    const winBanner = document.getElementById("win-banner");
+    const resetBtn = document.getElementById("reset-btn");
+
+    let firstCard = null;
+    let secondCard = null;
+    let lockBoard = false;
+    let moves = 0;
+    let matches = 0;
+
+    function shuffle(cards) {
+      for (let i = cards.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cards[i], cards[j]] = [cards[j], cards[i]];
+      }
+      return cards;
+    }
+
+    function updateStats() {
+      movesEl.textContent = moves;
+      matchesEl.textContent = matches;
+    }
+
+    function createCard(emoji, index) {
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "card";
+      card.dataset.emoji = emoji;
+      card.dataset.index = index;
+      card.setAttribute("aria-label", "Hidden card");
+      card.innerHTML = `
+        <div class="card-inner">
+          <div class="face front"></div>
+          <div class="face back">${emoji}</div>
+        </div>
+      `;
+      card.addEventListener("click", () => handleCardClick(card));
+      return card;
+    }
+
+    function resetTurn() {
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+    }
+
+    function checkForWin() {
+      if (matches === emojis.length) {
+        winBanner.classList.add("show");
+      }
+    }
+
+    function handleMatch() {
+      firstCard.classList.add("matched");
+      secondCard.classList.add("matched");
+      firstCard.setAttribute("aria-label", `Matched card ${firstCard.dataset.emoji}`);
+      secondCard.setAttribute("aria-label", `Matched card ${secondCard.dataset.emoji}`);
+      matches += 1;
+      updateStats();
+      checkForWin();
+      resetTurn();
+    }
+
+    function handleMismatch() {
+      lockBoard = true;
+      setTimeout(() => {
+        firstCard.classList.remove("flipped");
+        secondCard.classList.remove("flipped");
+        firstCard.setAttribute("aria-label", "Hidden card");
+        secondCard.setAttribute("aria-label", "Hidden card");
+        resetTurn();
+      }, 1000);
+    }
+
+    function handleCardClick(card) {
+      if (
+        lockBoard ||
+        card === firstCard ||
+        card.classList.contains("matched") ||
+        card.classList.contains("flipped")
+      ) {
+        return;
+      }
+
+      card.classList.add("flipped");
+      card.setAttribute("aria-label", `Revealed card ${card.dataset.emoji}`);
+
+      if (!firstCard) {
+        firstCard = card;
+        return;
+      }
+
+      secondCard = card;
+      moves += 1;
+      updateStats();
+
+      if (firstCard.dataset.emoji === secondCard.dataset.emoji) {
+        handleMatch();
+      } else {
+        handleMismatch();
+      }
+    }
+
+    function startGame() {
+      const deck = shuffle([...emojis, ...emojis]);
+      grid.innerHTML = "";
+      firstCard = null;
+      secondCard = null;
+      lockBoard = false;
+      moves = 0;
+      matches = 0;
+      updateStats();
+      winBanner.classList.remove("show");
+
+      deck.forEach((emoji, index) => {
+        grid.appendChild(createCard(emoji, index));
+      });
+    }
+
+    resetBtn.addEventListener("click", startGame);
+
+    startGame();
+  </script>
+</body>
+</html>
