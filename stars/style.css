@@ -1,3 +1,0 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Mono&family=Space+Grotesk:wght@400;600;700&display=swap');
-*{box-sizing:border-box}body{margin:0;overflow:hidden;background:#000}canvas{position:fixed;inset:0;width:100%;height:100%;background:#000}
-#telemetry{position:fixed;z-index:1;left:18px;bottom:16px;color:#8890a6cc;font:10px/1.45 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1.2px;white-space:pre;pointer-events:none}
