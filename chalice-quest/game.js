@@ -81,6 +81,7 @@
     ['redTrail','redRuins','south','greyApproach','blackApproach'],
     [null,null,null,null,'black']
   ];
+  const hardGrid=grid.map(row=>row.slice());
   const mazeMapRooms=['mazeTL','mazeTR','mazeML','mazeMR',null,'mazeBR'];
   const dragonMapRoom={goldInside:'gold',whiteInside:'white',redDungeon:'white',blackInside:'black',greyDungeon:'black'};
   const rooms={
@@ -209,10 +210,75 @@
   function createDragon([name,color,room,x,y,speed,stalker]){return {name,color,room,x,y,speed,stalker:!!stalker,dead:false,biting:false,biteTimer:0,follow:[],escape:null,path:[],pathTimer:0};}
   function randomWildsTrees(){return [[135,285,125,195],[675,825,125,195],[135,285,445,515],[675,825,445,515]].map(([minX,maxX,minY,maxY])=>({x:Math.round(minX+Math.random()*(maxX-minX)),y:Math.round(minY+Math.random()*(maxY-minY))}));}
   function roomTrees(room){return room==='south'?state.trees:room==='blackApproach'?BLACK_APPROACH_TREES:[];}
+  function shuffleCastles(){
+    const slots=[];
+    for(let row=0;row<grid.length;row++)for(let col=0;col<grid[row].length;col++){
+      if(grid[row][col]&&!['west','black'].includes(grid[row][col]))slots.push([row,col]);
+    }
+    for(const castle of ['gold','white','black']){
+      const chosen=slots.splice(Math.floor(Math.random()*slots.length),1)[0];
+      const origin=currentGrid(castle);
+      [grid[chosen[0]][chosen[1]],grid[origin[1]][origin[0]]]=[grid[origin[1]][origin[0]],grid[chosen[0]][chosen[1]]];
+    }
+  }
+  function randomFloorLocations(room){
+    const step=30,cols=31,rows=20,points=[],open=new Set(),visited=new Set(),queue=[];
+    for(let row=0;row<rows;row++)for(let col=0;col<cols;col++){
+      const point={x:30+col*step,y:20+row*step},index=row*cols+col;
+      points[index]=point;if(!blocked(room,point.x,point.y))open.add(index);
+    }
+    const entrances=room.endsWith('Inside')?[{x:480,y:525}]:[
+      {x:90,y:320},{x:870,y:320},{x:480,y:85},{x:480,y:555}
+    ].filter((point,index)=>Object.values(visibleExits(room))[index]);
+    for(const entrance of entrances){
+      const seed=[...open].filter(index=>Math.hypot(points[index].x-entrance.x,points[index].y-entrance.y)<65&&clearDragonRoute(room,entrance.x,entrance.y,points[index].x,points[index].y))
+        .sort((a,b)=>Math.hypot(points[a].x-entrance.x,points[a].y-entrance.y)-Math.hypot(points[b].x-entrance.x,points[b].y-entrance.y))[0];
+      if(seed!==undefined&&!visited.has(seed)){visited.add(seed);queue.push(seed);}
+    }
+    for(let i=0;i<queue.length;i++){
+      const index=queue[i],col=index%cols,row=Math.floor(index/cols);
+      for(const [dc,dr] of [[1,0],[-1,0],[0,1],[0,-1]]){
+        const nextCol=col+dc,nextRow=row+dr,next=nextRow*cols+nextCol;
+        if(nextCol<0||nextCol>=cols||nextRow<0||nextRow>=rows||!open.has(next)||visited.has(next))continue;
+        if(!clearDragonRoute(room,points[index].x,points[index].y,points[next].x,points[next].y))continue;
+        visited.add(next);queue.push(next);
+      }
+    }
+    return queue.map(index=>points[index]);
+  }
+  function randomizeQuest(){
+    shuffleCastles();state.mazeBridgeId=null;state.items.bridge2={room:'unplaced',x:0,y:0};
+    const roomIds=[...grid.flat().filter(Boolean),'goldInside','whiteInside','blackInside'];
+    const floors=Object.fromEntries(roomIds.map(room=>[room,randomFloorLocations(room)]));
+    const occupied=[];
+    function place(allowedRooms,margin=35){
+      const choices=allowedRooms.map(room=>({room,points:floors[room].filter(point=>
+        !blocked(room,point.x-margin/2,point.y-margin/2)&&!blocked(room,point.x+margin/2,point.y-margin/2)&&
+        !blocked(room,point.x-margin/2,point.y+margin/2)&&!blocked(room,point.x+margin/2,point.y+margin/2)&&
+        occupied.every(other=>other.room!==room||Math.hypot(point.x-other.x,point.y-other.y)>100)
+      )})).filter(choice=>choice.points.length);
+      const choice=choices[Math.floor(Math.random()*choices.length)];
+      if(!choice)throw new Error('No accessible random quest location');
+      const point=choice.points[Math.floor(Math.random()*choice.points.length)];
+      const location={room:choice.room,x:point.x,y:point.y};occupied.push(location);return location;
+    }
+    const outside=grid.flat().filter(Boolean),allRooms=[...outside,'goldInside','whiteInside','blackInside'];
+    const player=place(outside);state.room=player.room;state.player.x=player.x;state.player.y=player.y;state.seen=new Set([player.room]);
+    for(const id of Object.keys(state.items)){
+      if(id==='chalice')continue;
+      state.items[id]=place(id.endsWith('Key')?outside:allRooms,id.startsWith('bridge')?155:35);
+    }
+    state.items.chalice=place(['whiteInside','blackInside']);
+    for(const dragon of state.dragons){const location=place(allRooms,50);Object.assign(dragon,location);}
+    state.randomVesperStart=place(allRooms,50);
+    const bat=place(outside);Object.assign(state.bat,bat);
+  }
   function initial(room='entry'){
+    for(let row=0;row<grid.length;row++)grid[row]=hardGrid[row].slice();
     const batRooms=grid.flat().filter(Boolean),batRoom=batRooms[Math.floor(Math.random()*batRooms.length)];
-    state={room,player:{x:480,y:room==='entry'?470:530,face:'up',contact:'',bounce:{x:0,y:0,time:BOUNCE_SECONDS}},held:null,heldSide:'up',pickupDelay:0,items:Object.fromEntries(Object.entries(itemStarts).map(([id,[itemRoom,x,y]])=>[id,{room:itemRoom,x,y}])),gates:{gold:false,white:false,black:false},gateLatched:{gold:false,white:false,black:false},gateLift:{gold:0,white:0,black:0},bridgePlaced:false,dungeonBridgeId:null,mazeBridgeId:'bridge2',dragons:dragonStarts.filter(([name])=>name!=='Vesper').map(createDragon),gameTime:0,bat:{room:batRoom,x:70+Math.random()*(W-140),y:70+Math.random()*(H-140),vx:.8,vy:.6,carrying:null,carryingDragon:null,pickupCooldown:0,sightCooldown:1,chaseTimer:0},seen:new Set(room==='entry'?[]:['gold']),swallowedBy:null,winTimer:0,mode:'title',message:'Find the chalice. Bring it home.'};
+    state={room,player:{x:480,y:room==='entry'?470:530,face:'up',contact:'',bounce:{x:0,y:0,time:BOUNCE_SECONDS}},held:null,heldSide:'up',pickupDelay:0,items:Object.fromEntries(Object.entries(itemStarts).map(([id,[itemRoom,x,y]])=>[id,{room:itemRoom,x,y}])),gates:{gold:false,white:false,black:false},gateLatched:{gold:false,white:false,black:false},gateLift:{gold:0,white:0,black:0},bridgePlaced:false,dungeonBridgeId:null,mazeBridgeId:'bridge2',dragons:dragonStarts.filter(([name])=>name!=='Vesper').map(createDragon),gameTime:0,bat:{room:batRoom,x:70+Math.random()*(W-140),y:70+Math.random()*(H-140),vx:.8,vy:.6,mazeDestination:null,mazePortal:null,carrying:null,carryingDragon:null,pickupCooldown:0,sightCooldown:1,chaseTimer:0},seen:new Set(room==='entry'?[]:['gold']),swallowedBy:null,winTimer:0,mode:'title',message:'Find the chalice. Bring it home.'};
     state.trees=randomWildsTrees();
+    if(room==='random')randomizeQuest();
     keys.clear();moveDelay=0;batTimer=0;magnetPulse=0;refresh();
   }
   function say(t){state.message=t;noticeTimer=4;refresh();}
@@ -557,19 +623,42 @@
     const col=grid[row].indexOf(room);
     return grid[(row+d.y+grid.length)%grid.length][(col+d.x+grid[row].length)%grid[row].length]||room;
   }
+  function batMazeRoute(b){
+    if(!b.mazeDestination){
+      b.mazeDestination=b.room==='mazeML'?'west':'black';
+    }
+    const distance={[b.mazeDestination]:0},queue=[b.mazeDestination];
+    for(let i=0;i<queue.length;i++)for(const portal of mazePortals){
+      if(portal.to!==queue[i]||distance[portal.from]!==undefined)continue;
+      distance[portal.from]=distance[queue[i]]+1;queue.push(portal.from);
+    }
+    if(b.mazePortal?.from===b.room&&distance[b.mazePortal.to]<distance[b.room])return b.mazePortal;
+    const exits=mazePortals.filter(portal=>portal.from===b.room&&distance[portal.to]<distance[b.room]);
+    b.mazePortal=exits.reduce((best,portal)=>{
+      const point=mazeDoor(portal).exit;
+      const near=Math.hypot(point.x-b.x,point.y-b.y);
+      if(!best||near<best.distance)return {portal,distance:near};
+      return best;
+    },null)?.portal||null;
+    b.mazeCrossing=false;
+    return b.mazePortal;
+  }
   function moveBatAcrossWorld(b){
     if(mazeTiles[b.room]){
       const edge=b.x<0?'left':b.x>W?'right':b.y<0?'up':b.y>H?'down':null;
       if(edge){const portal=mazePortal(b.room,edge,edge==='left'||edge==='right'?b.y:b.x);
-        if(portal){const entry=mazeEntry(portal);b.room=portal.to;b.x=entry.x;b.y=entry.y;b.chaseTimer=0;return;}
+        if(portal){const entry=mazeEntry(portal);b.room=portal.to;b.x=entry.x;b.y=entry.y;b.chaseTimer=0;b.mazePortal=null;b.mazeCrossing=false;
+          if(!mazeTiles[b.room]){b.mazeDestination=null;b.vy=b.room==='west' ? .6 : -.6;}
+          return;}
+        b.mazeCrossing=false;
         if(edge==='left'||edge==='right'){b.x=Math.max(0,Math.min(W,b.x));b.vx*=-1;}else{b.y=Math.max(0,Math.min(H,b.y));b.vy*=-1;}
       }
       return;
     }
     if(b.x<0){const next=batNeighbor(b.room,dir.left);if(next!==b.room){b.room=next;b.x+=W;b.chaseTimer=0;}else{b.x=-b.x;b.vx=Math.abs(b.vx);}}
     else if(b.x>W){const next=batNeighbor(b.room,dir.right);if(next!==b.room){b.room=next;b.x-=W;b.chaseTimer=0;}else{b.x=2*W-b.x;b.vx=-Math.abs(b.vx);}}
-    if(b.y<0){const next=batNeighbor(b.room,dir.up);if(next!==b.room){b.room=next;b.y+=H;b.chaseTimer=0;}else{b.y=-b.y;b.vy=Math.abs(b.vy);}}
-    else if(b.y>H){const next=batNeighbor(b.room,dir.down);if(next!==b.room){b.room=next;b.y-=H;b.chaseTimer=0;}else{b.y=2*H-b.y;b.vy=-Math.abs(b.vy);}}
+    if(b.y<0){const from=b.room,next=batNeighbor(from,dir.up);if(next!==from){b.room=next;b.y+=H;b.chaseTimer=0;if(mazeTiles[next]){b.mazeDestination=from==='west'?'black':'west';b.mazePortal=null;b.mazeCrossing=false;}}else{b.y=-b.y;b.vy=Math.abs(b.vy);}}
+    else if(b.y>H){const from=b.room,next=batNeighbor(from,dir.down);if(next!==from){b.room=next;b.y-=H;b.chaseTimer=0;if(mazeTiles[next]){b.mazeDestination=from==='black'?'west':'black';b.mazePortal=null;b.mazeCrossing=false;}}else{b.y=2*H-b.y;b.vy=-Math.abs(b.vy);}}
   }
   function syncCarriedDragon(){
     const b=state.bat,d=state.dragons.find(dragon=>dragon.name===b.carryingDragon);
@@ -596,6 +685,15 @@
       }
       for(const d of state.dragons){if(d.room!==b.room)continue;const distance=Math.hypot(d.x-b.x,d.y-b.y);if(distance<best){nearest=d;best=distance;}}
       if(nearest&&best>0){const dx=nearest.x-b.x,dy=nearest.y-b.y;vx=dx/best;vy=dy/best;if(Math.abs(dx)>20)b.vx=Math.sign(dx)*.8;if(Math.abs(dy)>20)b.vy=Math.sign(dy)*.6;}
+    }
+    if(mazeTiles[b.room]){
+      const portal=batMazeRoute(b);
+      if(portal){
+        const target=mazeDoor(portal).exit,dx=target.x-b.x,dy=target.y-b.y,distance=Math.hypot(dx,dy);
+        if(distance<=8)b.mazeCrossing=true;
+        if(!b.mazeCrossing){vx=dx/distance;vy=dy/distance;}
+        else{vx=portal.edge==='left'?-1:portal.edge==='right'?1:0;vy=portal.edge==='up'?-1:portal.edge==='down'?1:0;}
+      }
     }
     b.x+=vx*280*dt;b.y+=vy*280*dt;moveBatAcrossWorld(b);syncCarriedDragon();
     if(playerActive&&b.room===state.room&&!state.held&&state.pickupDelay<=0&&batTimer<=0&&Math.hypot(p.x-b.x,p.y-b.y)<36){
@@ -631,8 +729,8 @@
   }
   function startVictory(){state.mode='winning';state.winTimer=0;state.message='The chalice has returned to the Golden Castle!';winSound.currentTime=0;winSound.play().catch(()=>{});refresh();}
   function finishVictory(){state.mode='won';showOverlay('THE CHALICE RETURNS','The Golden Castle is safe. You crossed the kingdom, outwitted its creatures, and restored the enchanted treasure.','PLAY AGAIN');refresh();}
-  function updateVesper(dt){state.gameTime+=dt;if(state.gameTime>=60&&!state.dragons.some(d=>d.name==='Vesper'))state.dragons.push(createDragon(dragonStarts.find(([name])=>name==='Vesper')));}
-  function update(dt){if(state.mode==='title'){state.player.bounce.time=Math.min(BOUNCE_SECONDS,state.player.bounce.time+dt);movePlayer(dt);const button=$('hardModeBtn').getBoundingClientRect(),screen=canvas.getBoundingClientRect(),p=state.player,px=screen.left+p.x*screen.width/W,py=screen.top+p.y*screen.height/H;if(px>=button.left&&px<=button.right&&py>=button.top&&py<=button.bottom)start();return;}if(state.mode==='winning'){state.winTimer+=dt;const duration=Number.isFinite(winSound.duration)&&winSound.duration>0?winSound.duration:4;if(state.winTimer>=Math.max(3,duration)+VICTORY_MESSAGE_DELAY&&(winSound.ended||winSound.paused))finishVictory();return;}if(state.mode==='lost'){state.player.bounce.time=Math.min(BOUNCE_SECONDS,state.player.bounce.time+dt);moveSwallowed(dt);updateBat(dt);refresh();return;}if(state.mode!=='playing')return;updateVesper(dt);state.player.bounce.time=Math.min(BOUNCE_SECONDS,state.player.bounce.time+dt);moveDelay=Math.max(0,moveDelay-dt);noticeTimer=Math.max(0,noticeTimer-dt);state.pickupDelay=Math.max(0,state.pickupDelay-dt);for(const castle of ['gold','white','black'])state.gateLift[castle]=Math.max(0,Math.min(1,state.gateLift[castle]+(state.gates[castle]?1:-1)*dt/.8));movePlayer(dt);gateCheck();if(state.mode!=='playing')return;updateMagnet(dt);pickup();updateDragons(dt);if(state.mode!=='playing')return;updateBat(dt);refresh();}
+  function updateVesper(dt){state.gameTime+=dt;if(state.gameTime>=60&&!state.dragons.some(d=>d.name==='Vesper')){const vesper=createDragon(dragonStarts.find(([name])=>name==='Vesper'));if(state.randomVesperStart)Object.assign(vesper,state.randomVesperStart);state.dragons.push(vesper);}}
+  function update(dt){if(state.mode==='title'){state.player.bounce.time=Math.min(BOUNCE_SECONDS,state.player.bounce.time+dt);movePlayer(dt);const screen=canvas.getBoundingClientRect(),p=state.player,px=screen.left+p.x*screen.width/W,py=screen.top+p.y*screen.height/H;for(const [id,mode] of [['hardModeBtn','hard'],['randomModeBtn','random']]){const button=$(id).getBoundingClientRect();if(px>=button.left&&px<=button.right&&py>=button.top&&py<=button.bottom){start(mode);break;}}return;}if(state.mode==='winning'){state.winTimer+=dt;const duration=Number.isFinite(winSound.duration)&&winSound.duration>0?winSound.duration:4;if(state.winTimer>=Math.max(3,duration)+VICTORY_MESSAGE_DELAY&&(winSound.ended||winSound.paused))finishVictory();return;}if(state.mode==='lost'){state.player.bounce.time=Math.min(BOUNCE_SECONDS,state.player.bounce.time+dt);moveSwallowed(dt);updateBat(dt);refresh();return;}if(state.mode!=='playing')return;updateVesper(dt);state.player.bounce.time=Math.min(BOUNCE_SECONDS,state.player.bounce.time+dt);moveDelay=Math.max(0,moveDelay-dt);noticeTimer=Math.max(0,noticeTimer-dt);state.pickupDelay=Math.max(0,state.pickupDelay-dt);for(const castle of ['gold','white','black'])state.gateLift[castle]=Math.max(0,Math.min(1,state.gateLift[castle]+(state.gates[castle]?1:-1)*dt/.8));movePlayer(dt);gateCheck();if(state.mode!=='playing')return;updateMagnet(dt);pickup();updateDragons(dt);if(state.mode!=='playing')return;updateBat(dt);refresh();}
   function rect(x,y,w,h,color){ctx.fillStyle=color;ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));}
   function label(t,x,y,size=20,color='#f5e8bc',align='left'){ctx.fillStyle=color;ctx.font=`bold ${size}px monospace`;ctx.textAlign=align;ctx.fillText(t,x,y);ctx.textAlign='left';}
   function drawItem(id,x,y){const info=itemInfo[id];if(!info)return;ctx.save();ctx.translate(x,y);if(isChalice(id)){const hue=((state.mode==='winning'?state.winTimer:performance.now()/1000)*300)%360;ctx.filter=`hue-rotate(${hue}deg) saturate(2) brightness(1.25)`;ctx.shadowColor=`hsl(${hue} 100% 70%)`;ctx.shadowBlur=14;}if(sprites[id]){ctx.imageSmoothingEnabled=false;if(id==='sword')ctx.drawImage(sprites.sword,-18,-11,36,22);else if(isBridge(id)){const {width,height}=bridgeDimensions(id);ctx.drawImage(sprites.bridge,-width/2,-height/2,width,height);}else if(isChalice(id))ctx.drawImage(sprites.chalice,-15,-17,30,34);else ctx.drawImage(sprites[id],-17,-7,34,14);}else label(info[1],0,id==='magnet'?20:10,id==='magnet'?56:isBridge(id)?Math.round(28*BRIDGE_SCALE):28,info[2],'center');ctx.restore();}
@@ -684,7 +782,7 @@
     if(celebratingInside){ctx.save();ctx.filter=`hue-rotate(${(state.winTimer*300)%360}deg) saturate(2) brightness(1.25)`;}
     if(type.endsWith('Inside')){rect(345,160,270,280,type==='goldInside'?'#9b8350':'#696c65');rect(365,180,230,240,'#38423f');rect(415,255,130,78,type==='goldInside'?'#e5c66f':'#9ba69b');if(type!=='goldInside')label(type==='whiteInside'?'WHITE DUNGEON ↑':'GREY DUNGEON ↑',480,113,19,'#f3d697','center');}
     if(type==='redDungeon'){rect(GAP_X,GAP_Y,GAP_WIDTH,GAP_HEIGHT,state.bridgePlaced?'#c39b68':'#111e2b');if(state.bridgePlaced){if(sprites.bridge){const {width,height}=bridgeDimensions(state.dungeonBridgeId);ctx.imageSmoothingEnabled=false;ctx.drawImage(sprites.bridge,(W-width)/2,BRIDGE_Y-height/2,width,height);}else for(let y=GAP_Y+7;y<GAP_Y+GAP_HEIGHT;y+=15)rect(GAP_X+7,y,GAP_WIDTH-14,5,'#67523c');}label('BRIDGE GAP',W/2,GAP_Y-15,16,'#efd3a0','center');}
-    if(type==='greyDungeon'){rect(560,80,300,240,'#343d41');label('THE CHALICE IS NEAR',665,98,15,'#d8ccaf','center');}
+    if(type==='greyDungeon'){rect(560,80,300,240,'#343d41');if(!state.randomVesperStart||state.items.chalice.room==='greyDungeon')label('THE CHALICE IS NEAR',665,98,15,'#d8ccaf','center');}
     if(type!=='newMaze')drawDoorFrame(exits,type);
     if(state.room==='west')rect(76,0,10,H,'#000000');
     if(state.room==='blackApproach')rect(W-76-10,0,10,H,'#000000');
@@ -778,14 +876,14 @@
     if(!hints.hidden)refreshHints();
   }
   function frame(time){const dt=Math.min(.05,(time-last)/1000||0);last=time;update(dt);draw();requestAnimationFrame(frame);}
-  function titleScreen(){fadeToken++;clearTimeout(fadeTimer);transitionScreen.hidden=true;transitionScreen.classList.remove('fading');overlay.classList.remove('fading','transitioning');winSound.pause();winSound.currentTime=0;initial();showOverlay('CHALICE QUEST','Explore the kingdom, open its castles, and carry the chalice home to the Golden Castle. Beware the dragons and the thieving bat. Press Tab for help.','');refresh();$('hardModeBtn').focus();}
-  function start(){
+  function titleScreen(){fadeToken++;clearTimeout(fadeTimer);transitionScreen.hidden=true;transitionScreen.classList.remove('fading');overlay.classList.remove('fading','transitioning');winSound.pause();winSound.currentTime=0;initial();showOverlay('CHALICE QUEST','Explore the kingdom, open its castles, and carry the chalice home to the Golden Castle. Beware the dragons and the thieving bat. Use arrow keys and space for controls. Press Tab for help.','');refresh();}
+  function start(mode='hard'){
     if(state.mode!=='title')return;
     const token=++fadeToken;
     transitionScreen.getContext('2d').drawImage(canvas,0,0);
     transitionScreen.classList.remove('fading');transitionScreen.hidden=false;
     overlay.classList.add('transitioning');
-    winSound.pause();winSound.currentTime=0;initial('gold');state.mode='playing';refresh();
+    winSound.pause();winSound.currentTime=0;initial(mode==='random'?'random':'gold');state.mode='playing';refresh();
     requestAnimationFrame(()=>{
       if(token!==fadeToken)return;
       transitionScreen.classList.add('fading');overlay.classList.add('fading');
@@ -799,7 +897,7 @@
   window.addEventListener('keydown',e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;if(k==='Tab'){e.preventDefault();togglePanels();}else if(k==='Enter'&&state.mode==='lost'){e.preventDefault();titleScreen();}else if(keyDir[k]){keys.add(keyDir[k]);e.preventDefault();}else if(k===' '&&state.mode!=='title'){useAction();e.preventDefault();}else if(k==='m'){magnet();}else if(k==='p'){pause();}else if(k==='r'){titleScreen();}});
   window.addEventListener('keyup',e=>{const k=e.key.length===1?e.key.toLowerCase():e.key;if(keyDir[k])keys.delete(keyDir[k]);});window.addEventListener('blur',()=>keys.clear());
   document.querySelectorAll('[data-dir]').forEach(button=>{const d=button.dataset.dir;button.addEventListener('pointerdown',e=>{keys.add(d);button.setPointerCapture(e.pointerId);e.preventDefault();});for(const event of ['pointerup','pointercancel','lostpointercapture'])button.addEventListener(event,()=>keys.delete(d));});
-  $('dropBtn').onclick=useAction;$('magnetBtn').onclick=magnet;$('pauseBtn').onclick=pause;$('restartBtn').onclick=titleScreen;$('hardModeBtn').onclick=start;$('overlayBtn').onclick=()=>state.mode==='paused'?pause():titleScreen();
+  $('dropBtn').onclick=useAction;$('magnetBtn').onclick=magnet;$('pauseBtn').onclick=pause;$('restartBtn').onclick=titleScreen;$('hardModeBtn').onclick=()=>start('hard');$('randomModeBtn').onclick=()=>start('random');$('overlayBtn').onclick=()=>state.mode==='paused'?pause():titleScreen();
   hintsToggle.addEventListener('click',event=>{event.preventDefault();hints.hidden=!hints.hidden;hintsToggle.textContent=hints.hidden?'Show hints':'Hide hints';hintsToggle.setAttribute('aria-expanded',String(!hints.hidden));refresh();});
   document.body.classList.add('playfield-only');titleScreen();requestAnimationFrame(frame);
 })();
