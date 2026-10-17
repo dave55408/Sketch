@@ -343,7 +343,7 @@
         if (!selectionToolActive()) selectButton.click();
         return;
       }
-      if (event.code === 'KeyR' && (!editor || event.target === editor)) {
+      if (event.code === 'KeyR' && !editor && !typingInField) {
         event.preventDefault();
         document.querySelector('.floating-help')?.remove();
         resetSketchPad({ preserveText: Boolean(editor) });
