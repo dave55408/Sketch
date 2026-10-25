@@ -1,50 +1,67 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Oracle Fusion Data Intelligence - Hands-on Lab, AIW 2026</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Oracle Fusion Data Intelligence Hands-on Lab, AIW 2026</title>
 <style>
 :root{font-family:"Segoe UI",Arial,sans-serif;color:#292923;background:#f5f4ee;color-scheme:light}*{box-sizing:border-box}body{margin:0}.wrap{max-width:1120px;margin:auto;padding:0 28px}header{border-bottom:1px solid #ddddd3}header .wrap{min-height:80px;display:flex;align-items:center;justify-content:space-between;gap:20px}.brand{font-size:21px;font-weight:700}.brand span{color:#b33225}.eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#b33225;font-weight:700}.topnote{font-size:11px;letter-spacing:1.4px;color:#66665f;text-transform:uppercase}main{padding-top:52px!important;padding-bottom:32px!important}h1{font-size:clamp(36px,5vw,58px);font-weight:650;line-height:1.08;letter-spacing:-2px;margin:16px 0 20px}.intro{max-width:650px;font-size:17px;line-height:1.65;color:#66665f;margin-bottom:30px}.download{background:#e9ece3;border:1px solid #d8ddcf;padding:26px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:22px}.download h2{font-size:18px;margin:0 0 6px}.download p{font-size:14px;color:#66665f;margin:0}.button{display:inline-flex;align-items:center;justify-content:center;gap:20px;background:#b33225;color:white;padding:13px 20px;border-radius:6px;text-decoration:none;font-size:14px;font-weight:650;white-space:nowrap}.button:hover{background:#92291f}.section-head{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:38px 0 18px}.section-head h2{font-size:23px;letter-spacing:-.5px;margin:0}.section-head p{font-size:13px;color:#66665f;margin:0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}.card{border:1px solid #ddddd3;background:white;border-radius:12px;overflow:hidden}.card-body{padding:24px}.card-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}h3{font-size:20px;letter-spacing:-.4px;margin:0}.tag{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#426451;background:#edf2eb;padding:6px 8px;border-radius:4px;font-weight:700}.tag.backup{background:#f4efe4;color:#78613c}.host{font:12px/1.6 Consolas,monospace;overflow-wrap:anywhere;color:#66665f;margin:0 0 22px}.open{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#fafaf7;border-top:1px solid #ddddd3;color:#b33225;font-size:13px;font-weight:700;text-decoration:none}.open:hover{background:#f1f0e9}a:focus-visible{outline:3px solid #296bc1;outline-offset:3px}footer{margin-top:36px;padding-top:20px;border-top:1px solid #ddddd3;display:flex;justify-content:space-between;gap:16px;font-size:12px;color:#66665f}@media(max-width:700px){.wrap{padding:0 20px}main{padding-top:34px!important}.grid{grid-template-columns:1fr}.download{align-items:stretch;flex-direction:column}.section-head{align-items:flex-start;flex-direction:column;gap:7px}.topnote{font-size:9px;letter-spacing:.5px}footer{flex-direction:column}}
 /* Desaturated blue palette */
 :root{background:#222F39;color:#e3eaf0;color-scheme:dark}
 header{background:#2b3b49;border-bottom-color:#4b6071}
 .brand,.brand span{color:#ffffff}
+.brand{font-weight:400}
 .eyebrow{color:#b5cadb}
 .topnote,.intro,footer{color:#b8c7d3}
 footer{border-top-color:#4b6071}
 .card{background:#304352;border-color:#506778}
-.host{color:#c5d3de;font-size:24px}
+.host{color:#c5d3de;font-size:12px}
 .open{background:#374e60;border-top-color:#506778;color:#f0cd78;font-size:13px}
 .open:hover{background:#435f74}
 .download{background:#344a5b;border-color:#566f82}
 .download p{color:#c5d3de}
-.button{background:#526e84;color:#f0cd78;font-size:14px}
-.button:hover{background:#607e95}
+.button{background:#73551c;color:#fff8e7;font-size:14px;box-shadow:0 3px 7px rgba(0,0,0,.25)}
+.button:hover{background:#846322}
 a:focus-visible{outline-color:#f0cd78}
+.paper-slip{position:relative;margin:0 0 20px;padding:7.04px;background:#fffdf5;border:1px solid #e5e0d2;border-radius:1px 2px 5px 1px;width:88%;max-width:299.2px;box-shadow:0 2px 3px rgba(0,0,0,.18),2px 7px 12px rgba(0,0,0,.22);transform:rotate(-1deg)}
+.paper-slip::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:repeating-linear-gradient(0deg,rgba(113,94,55,.025) 0,rgba(113,94,55,.025) 1px,transparent 1px,transparent 3px),linear-gradient(110deg,rgba(255,255,255,.2),transparent 45%,rgba(136,113,68,.07));box-shadow:inset 0 0 12px rgba(126,109,70,.06)}
+.paper-slip img{display:block;width:100%;height:auto;mix-blend-mode:multiply}
+.instance-actions{display:flex;flex-direction:column;align-items:flex-start;gap:18px}
+.instance-url{width:100%;min-width:0;padding-left:5px;color:#c5d3de;font-size:12px}
+.instance-url summary{cursor:pointer;padding:6px 0;font-size:14px}
+.instance-url summary:focus-visible{outline:3px solid #b5cedf;outline-offset:3px}
+.instance-url .host{margin:10px 0 0}
+.page-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:20px}
+.page-heading .session-title{margin:0}
+.oracle-logo{display:block;width:44.8px;height:44.8px;flex:0 0 44.8px}
+@media(max-width:700px){.oracle-logo{width:36.4px;height:36.4px;flex-basis:36.4px}}
+main.wrap{padding-top:16px!important}
+.intro{max-width:none;white-space:nowrap}
+@media(max-width:1100px){.intro{white-space:normal}}
+.session-title{font-size:24px;line-height:1.35;letter-spacing:-.4px;margin:0 0 20px;font-weight:700}
 </style>
 </head>
 <body>
-<header><div class="wrap"><div class="brand"><strong>Oracle Fusion Data Intelligence - Hands-on Lab, AIW 2026</strong></div><div class="topnote">Hands-on workshop</div></div></header>
 <main class="wrap">
-<p class="intro">Download the lab files and open your assigned analytics instance to get started.</p>
+<div class="page-heading"><h1 class="session-title">Intro to Fusion Data Intelligence and AI Agents for Business Users</h1><svg class="oracle-logo" viewBox="0 0 64 64" role="img" aria-label="Oracle logo" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" fill="#c7352b"/><rect x="16" y="22.5" width="32" height="19" rx="9.5" fill="none" stroke="#fff" stroke-width="4"/></svg></div>
+<p class="intro">Welcome! to our Hands-on lab. Download the lab files and open your assigned FDI instance to get started.</p>
 <section class="download" aria-labelledby="files-heading"><div><h2 id="files-heading">Workshop lab files</h2><p>Everything you need to follow along.</p></div><a class="button" href="https://objectstorage.us-ashburn-1.oraclecloud.com/n/axqurh31kd2o/b/AIW-HOL/o/lab-files.zip">Download lab files <span aria-hidden="true">↓</span></a></section>
 <div class="grid" id="primary-instances" style="margin-top:24px"></div>
-<div class="grid" id="backup-instances" style="margin-top:20px"></div>
 <footer><span>Oracle FDI · Workshop resources</span><span>Instance links open in a new tab.</span></footer>
 <noscript><p>Enable JavaScript to view the instance links.</p></noscript>
 </main>
 <script>
 const instances = [
-{name:'Instance 1',host:'oaxfaw10649ivao-yzqoxbjpgldn-51-to.analytics.ocp.oraclecloud.com',backup:false},
-{name:'Instance 2',host:'oaxfaw107nktjy5-yzqoxbjpgldn-z1-to.analytics.ocp.oraclecloud.com',backup:false},
-{name:'Instance 3',host:'oaxfaw10986ta68-yzqoxbjpgldn-s2-to.analytics.ocp.oraclecloud.com',backup:true},
-{name:'Instance 4',host:'oaxfaw110g74lst-yzqoxbjpgldn-96-to.analytics.ocp.oraclecloud.com',backup:true}
+{name:'Instance 1',host:'oaxfaw108pltf1q-yzqoxbjpgldn-1n-to.analytics.ocp.oraclecloud.com',backup:false},
+{name:'Instance 2',host:'oaxfaw111ezv0fq-yzqoxbjpgldn-j8-to.analytics.ocp.oraclecloud.com',backup:false}
 ];
 instances.forEach(instance=>{
  const card=document.createElement('article');
  card.className='card';
  card.innerHTML=`<div class="card-body"><div class="card-top"><h3>${instance.name}</h3></div>
- <p class="host">${instance.host}</p></div>
- <a class="open" href="https://${instance.host}/ui/dv" target="_blank" rel="noopener noreferrer">Open FDI for ${instance.name} <span aria-hidden="true">↗</span></a>`;
+ <a class="button" style="margin-bottom:18px" href="https://${instance.host}/ui/dv" target="_blank" rel="noopener noreferrer">Open FDI on ${instance.name} <span aria-hidden="true">↗</span></a>
+ <p style="font-size:14px;color:#c5d3de;margin:0 0 18px">You can find your instance on the paper slip.</p>
+ <figure class="paper-slip"><img src="paper-slip-${instance.name.slice(-1)}.svg" width="421" height="265" alt="Example paper slip with ${instance.name} highlighted in yellow, where you find your assigned instance."></figure>
+ <div class="instance-actions">
+ <details class="instance-url"><summary>View instance details</summary><p class="host">https://${instance.host}/ui/dv</p></details></div></div>`;
  document.getElementById(instance.backup?'backup-instances':'primary-instances').appendChild(card);
 });
 </script>
