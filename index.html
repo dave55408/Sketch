@@ -23,7 +23,7 @@ footer{border-top-color:#4b6071}
 .button:active{background:#9ab7cd;box-shadow:0 1px 3px rgba(0,0,0,.25)}
 .button:focus-visible{outline:3px solid #e3f1fb;outline-offset:4px}
 a:focus-visible{outline-color:#f0cd78}
-.paper-slip{position:relative;margin:0 0 20px;padding:7.04px;background:#fffdf5;border:1px solid #e5e0d2;border-radius:1px 2px 5px 1px;width:88%;max-width:299.2px;box-shadow:0 2px 3px rgba(0,0,0,.18),2px 7px 12px rgba(0,0,0,.22);transform:rotate(-1deg)}
+.paper-slip{position:relative;margin:0 0 20px;padding:7.744px;background:#fff;border:1px solid #e5e0d2;border-radius:0;width:96.8%;max-width:329.12px;box-shadow:0 2px 3px rgba(0,0,0,.18),2px 7px 12px rgba(0,0,0,.22);transform:rotate(-1deg)}
 .paper-slip::after{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;background:repeating-linear-gradient(0deg,rgba(113,94,55,.025) 0,rgba(113,94,55,.025) 1px,transparent 1px,transparent 3px),linear-gradient(110deg,rgba(255,255,255,.2),transparent 45%,rgba(136,113,68,.07));box-shadow:inset 0 0 12px rgba(126,109,70,.06)}
 .paper-slip img{display:block;width:100%;height:auto;mix-blend-mode:multiply}
 .instance-actions{display:flex;flex-direction:column;align-items:flex-start;gap:18px}
@@ -39,14 +39,35 @@ main.wrap{padding-top:16px!important}
 .intro{max-width:none;white-space:nowrap}
 @media(max-width:1100px){.intro{white-space:normal}}
 .session-title{font-size:24px;line-height:1.35;letter-spacing:-.4px;margin:0 0 20px;font-weight:700}
+.workshop-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:40px;align-items:start}
+.workshop-layout>section{min-width:0}
+.instructions .intro{white-space:normal;margin-top:0}
+.instructions .paper-slip{margin-left:auto;margin-right:auto;margin-top:48px}
+.resource-links{display:flex;flex-direction:column;gap:20px}
+.resource-links .download{flex-direction:column;align-items:flex-start;padding:24px;gap:18px}
+.resource-links .grid{grid-template-columns:1fr}
+.resource-links .card-top{margin-bottom:6px}
+.resource-links .download h2,.resource-links .card h3{line-height:1.25}
+.resource-links .download p,.resource-links .card-body>p{line-height:1.5}
+@media(max-width:760px){.workshop-layout{grid-template-columns:1fr;gap:24px}}
 </style>
 </head>
 <body>
 <main class="wrap">
 <div class="page-heading"><h1 class="session-title">Intro to Fusion Data Intelligence and AI Agents for Business Users</h1><svg class="oracle-logo" viewBox="0 0 64 64" role="img" aria-label="Oracle logo" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" fill="#c7352b"/><rect x="16" y="22.5" width="32" height="19" rx="9.5" fill="none" stroke="#fff" stroke-width="4"/></svg></div>
 <p class="intro">Welcome to our Hands-on lab! Download the lab files and open your assigned FDI instance to get started.</p>
+<div class="workshop-layout">
+<section class="instructions" aria-label="Lab instructions">
+<div>
+ <p style="font-size:17px;color:#c5d3de;margin:0 0 18px">You can find your personal instance on the paper slip.</p>
+ <figure class="paper-slip"><img src="paper-slip.svg" width="421" height="265" alt="Example paper slip with Instance # highlighted in yellow, where you find your assigned instance."></figure>
+</div>
+</section>
+<section class="resource-links" aria-label="Lab download and instance links">
 <section class="download" aria-labelledby="files-heading"><div><h2 id="files-heading">Workshop lab files</h2><p>Everything you need to follow along.</p></div><a class="button" href="https://objectstorage.us-ashburn-1.oraclecloud.com/n/axqurh31kd2o/b/AIW-HOL/o/lab-files.zip">Download lab files <span aria-hidden="true">↓</span></a></section>
-<div class="grid" id="primary-instances" style="margin-top:24px"></div>
+<div class="grid" id="primary-instances"></div>
+</section>
+</div>
 <footer><span>Oracle FDI · Workshop resources</span><span>Instance links open in a new tab.</span></footer>
 <noscript><p>Enable JavaScript to view the instance links.</p></noscript>
 </main>
@@ -59,10 +80,9 @@ instances.forEach(instance=>{
  const card=document.createElement('article');
  card.className='card';
  card.innerHTML=`<div class="card-body"><div class="card-top"><h3>${instance.name}</h3></div>
- <a class="button" style="margin-bottom:18px" href="https://${instance.host}/ui/dv" target="_blank" rel="noopener noreferrer">Open FDI on ${instance.name} <span aria-hidden="true">↗</span></a>
- <p style="font-size:14px;color:#c5d3de;margin:0 0 18px">You can find your instance on the paper slip.</p>
- <figure class="paper-slip"><img src="paper-slip-${instance.name.slice(-1)}.svg" width="421" height="265" alt="Example paper slip with ${instance.name} highlighted in yellow, where you find your assigned instance."></figure>
+ <p style="font-size:14px;color:#c5d3de;margin:0 0 18px">Your instance is written on the paper slip.</p>
  <div class="instance-actions">
+ <a class="button" href="https://${instance.host}/ui/dv" target="_blank" rel="noopener noreferrer">Open FDI on ${instance.name} <span aria-hidden="true">↗</span></a>
  <details class="instance-url"><summary>View instance details</summary><p class="host">https://${instance.host}/ui/dv</p></details></div></div>`;
  document.getElementById(instance.backup?'backup-instances':'primary-instances').appendChild(card);
 });

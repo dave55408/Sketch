@@ -2,7 +2,11 @@
   <title id="title">Workshop paper slip - Instance 2</title>
   <desc id="description">Example paper slip with Instance 2 highlighted in yellow. Username and password are placeholders.</desc>
   <rect width="421" height="265" fill="white"/>
-  <path d="M 121 124 L 219 122 L 220 142 L 120 143 Z" fill="#ffeb3b" fill-opacity=".8"/>
+  <g fill="#ffeb3b" transform="translate(171 133) rotate(1.5) scale(1.16 1.32) translate(-170 -133)">
+    <path d="M 119 123 L 137 124 L 155 122 L 178 124 L 198 123 L 218 125 L 221 128 L 219 136 L 220 142 L 201 141 L 183 143 L 160 141 L 141 143 L 122 141 L 120 136 Z" fill-opacity=".49"/>
+    <path d="M 121 126 Q 144 125 169 127 T 220 126 L 218 141 Q 194 139 171 140 T 120 139 Z" fill-opacity=".38"/>
+    <path d="M 122 134 Q 148 132 179 134 T 220 133 L 219 139 Q 176 137 121 140 Z" fill-opacity=".14"/>
+  </g>
   <g font-family="Arial, sans-serif" fill="black">
     <g font-size="18" font-weight="700">
       <text x="14" y="52">Go to this URL</text>
