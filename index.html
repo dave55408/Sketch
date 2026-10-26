@@ -59,7 +59,7 @@ main.wrap{padding-top:16px!important}
 <div class="workshop-layout">
 <section class="instructions" aria-label="Lab instructions">
 <div>
- <p style="font-size:17px;color:#c5d3de;margin:0 0 18px">You can find your personal instance on the paper slip.</p>
+ <p style="font-size:17px;color:#c5d3de;margin:0 0 18px">Your personal instance number is on the paper slip.</p>
  <figure class="paper-slip"><img src="paper-slip.svg" width="421" height="265" alt="Example paper slip with Instance # circled in red, where you find your assigned instance."></figure>
 </div>
 </section>
@@ -80,7 +80,7 @@ instances.forEach(instance=>{
  const card=document.createElement('article');
  card.className='card';
  card.innerHTML=`<div class="card-body"><div class="card-top"><h3>${instance.name}</h3></div>
- <p style="font-size:14px;color:#c5d3de;margin:0 0 18px">Your instance is written on the paper slip.</p>
+ <p style="font-size:14px;color:#c5d3de;margin:0 0 18px">Your instance number is on the paper slip.</p>
  <div class="instance-actions">
  <a class="button" href="https://${instance.host}/ui/dv" target="_blank" rel="noopener noreferrer">Open FDI on ${instance.name} <span aria-hidden="true">↗</span></a>
  <details class="instance-url"><summary>View instance details</summary><p class="host">https://${instance.host}/ui/dv</p></details></div></div>`;
