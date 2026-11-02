@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FDI Pricing Entry</title>
+    <style>
+      :root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172033; background: #e5eaf2; }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100vh; padding: 1.5rem 1rem; }
+      .worksheet-layout { max-width: 1180px; margin: 0 auto; display: grid; grid-template-columns: minmax(0, 820px) minmax(260px, 1fr); gap: 1.5rem; align-items: start; }
+      main { padding: 1.5rem; background: #fff; border-radius: 14px; box-shadow: 0 12px 36px #17203318; }
+      .rules { padding: 1.25rem; border: 1px solid #dce3ee; border-radius: 14px; background: #f3f5f7; box-shadow: 0 12px 36px #17203312; }
+      .rules h2 { margin: 0 0 .75rem; font-size: 1.1rem; }
+      .rules ul { margin: 0; padding-left: 1.2rem; color: #4f5b70; font-size: .845rem; line-height: 1.45; }
+      .rules li + li { margin-top: .75rem; }
+      h1 { margin: 0; font-size: clamp(1.4rem, 4vw, 1.8rem); }
+      .last-updated { margin: .4rem 0 .75rem; color: #5d687d; font-size: .8rem; }
+      .intro { margin: .35rem 0 1.2rem; color: #5d687d; }
+      .section-title { margin: 0 0 .7rem; font-size: 1.15rem; }
+      .heading, .entry-row { display: grid; grid-template-columns: 1fr 1.25fr .85fr 42px; gap: 1rem; align-items: end; }
+      .heading { padding: 0 .15rem .3rem; color: #566179; font-size: .72rem; font-weight: 750; letter-spacing: .045em; text-transform: uppercase; }
+      .rows { display: grid; gap: .55rem; }
+      .entry-row { padding: .7rem; border: 1px solid #dce3ee; border-radius: 10px; background: #fbfcfe; }
+      label { display: grid; gap: .3rem; font-size: .9rem; font-weight: 650; }
+      .entry-row label { gap: 0; font-size: 0; }
+      .entry-row select, .entry-row input { font-size: .9rem; }
+      select, input { width: 100%; min-height: 38px; border: 1px solid #bcc8da; border-radius: 7px; padding: .45rem .6rem; background: #fff; color: inherit; font: inherit; }
+      select:focus, input:focus { outline: 3px solid #b8d0ff; border-color: #2f6edb; }
+      button { border: 0; border-radius: 7px; padding: .55rem .8rem; background: #2563d9; color: #fff; font: inherit; font-size: .9rem; font-weight: 700; cursor: pointer; }
+      button:hover { background: #1d4fb0; }
+      .remove { min-height: 38px; padding: 0; background: transparent; color: #a12a2a; font-size: 1.15rem; }
+      .remove:hover { background: #fff0f0; }
+      .actions { display: flex; gap: .6rem; margin-top: .9rem; }
+      .add { background: #eaf1ff; color: #1f55b5; }
+      .add:hover { background: #d9e7ff; }
+      .add-fdi { margin-top: .9rem; }
+      .move { background: #1c5f50; }
+      .move:hover { background: #14483d; }
+      .analytics { display: none; margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #dce3ee; }
+      .analytics.visible { display: block; }
+      .analytics h2 { margin: 0 0 .25rem; font-size: 1.15rem; }
+      .analytics p { margin: 0 0 .7rem; color: #5d687d; }
+      .analytics-heading, .analytics-row { display: grid; grid-template-columns: 1fr 1.25fr .85fr 42px; gap: 1rem; align-items: end; }
+      .analytics-heading { padding: 0 .15rem .3rem; color: #566179; font-size: .72rem; font-weight: 750; letter-spacing: .045em; text-transform: uppercase; }
+      .analytics-rows { display: grid; gap: .55rem; }
+      .analytics-row { padding: .7rem; border: 1px solid #dce3ee; border-radius: 10px; background: #fbfcfe; }
+      .analytics-row label { gap: 0; font-size: 0; }
+      .analytics-row select, .analytics-row input { font-size: .9rem; }
+      .analytics-actions { display: flex; gap: .6rem; margin-top: .85rem; }
+      .add-analytics { margin-top: .85rem; }
+      .validate, .clear-form { margin: 0; }
+      .clear-form { background: #eaf1ff; color: #1f55b5; }
+      .clear-form:hover { background: #d9e7ff; }
+      .summary { display: none; margin-top: 1rem; padding: .9rem 1rem; border: 1px solid #b9ddcf; border-radius: 10px; background: #f0fbf5; }
+      .summary.visible { display: block; }
+      .summary h2 { margin: 0 0 .45rem; color: #175c42; font-size: 1.05rem; }
+      .summary ul { margin: 0; padding-left: 1.2rem; }
+      .summary li + li { margin-top: .4rem; }
+      .summary li.fdi-summary-end, .summary li.analytics-summary-end { padding-bottom: .75rem; margin-bottom: .75rem; border-bottom: 1px solid #b9ddcf; }
+      .copy-summary { margin-top: .85rem; background: #175c42; }
+      .copy-summary:hover { background: #104631; }
+      dialog { width: min(92vw, 430px); border: 0; border-radius: 14px; padding: 0; color: #172033; box-shadow: 0 20px 60px #17203355; }
+      dialog::backdrop { background: #17203380; }
+      .modal-content { padding: 1.5rem 1.5rem 1.85rem; }
+      .modal-content h2 { margin: 0 0 .55rem; font-size: 1.25rem; }
+      .modal-content ul { margin: 0 0 1.4rem; padding-left: 1.2rem; color: #4f5b70; line-height: 1.5; }
+      .modal-content button { display: block; min-width: 84px; margin-left: auto; }
+      @media (max-width: 650px) {
+        .worksheet-layout { grid-template-columns: 1fr; gap: 1rem; }
+        main { padding: 1rem; }
+        .heading, .analytics-heading { display: none; }
+        .entry-row, .analytics-row { grid-template-columns: 1fr; gap: .85rem; }
+        .entry-row label, .analytics-row label { gap: .3rem; font-size: .9rem; }
+        .remove { grid-row: 1; justify-self: end; width: 42px; }
+        .actions, .analytics-fields { flex-direction: column; grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="worksheet-layout">
+    <main>
+      <h1>Fusion Operational Analytics Pricing Worksheet</h1>
+      <p class="last-updated">Last updated: <time datetime="2026-11-02">November 2, 2026</time></p>
+      <p class="intro">Select FDI Base pillars and pricing metrics, select the "Use these values..." button then enter the corresponding number of FDI users. Next, click the button to select values for Fusion Operational Analytics in the next sectionmake .</p>
+      <form id="fdi-form">
+        <h2 class="section-title">FDI Base</h2>
+        <div class="heading" aria-hidden="true"><span>FDI Pillar</span><span>Pricing Metric</span><span>FDI Users</span><span></span></div>
+        <div id="rows" class="rows"></div>
+        <button class="add add-fdi" type="button" id="add-row">+ Add another pillar</button>
+        <div class="actions">
+          <button class="move" type="button" id="move-to-analytics">Use these values to select Fusion Operational Analytics</button>
+        </div>
+        <section class="analytics" id="analytics-section" aria-labelledby="analytics-title">
+          <h2 id="analytics-title">Fusion Operational Analytics</h2>
+          <p>Enter the corresponding Fusion Operational Analytics information.</p>
+          <div class="analytics-heading" aria-hidden="true"><span><strong>Operational Analytics Pillar</strong></span><span>Pricing Metric</span><span>Op Analytics User Numbers</span><span></span></div>
+          <div id="analytics-rows" class="analytics-rows"></div>
+          <button class="add add-analytics" type="button" id="add-analytics-row">+ Add another pillar</button>
+          <div class="analytics-actions">
+            <button class="validate" type="button" id="validate">Validate</button>
+            <button class="clear-form" type="button" id="clear-form">Clear worksheet</button>
+          </div>
+          <section class="summary" id="summary" aria-live="polite">
+            <h2>Selection Summary</h2>
+            <p>Please make sure this validated combination of new and former information is present in CPQ. <strong>Note:</strong> It is understood the actual pillars selected may not be apparent in CPQ.</p>
+            <ul id="summary-list"></ul>
+            <button class="copy-summary" type="button" id="copy-summary">Copy summary</button>
+          </section>
+        </section>
+      </form>
+      <template id="row-template">
+        <section class="entry-row">
+          <label>FDI Pillar
+            <select name="pillar[]" required>
+              <option value="" selected disabled>Select a pillar</option>
+              <option value="CX">CX</option>
+              <option value="ERP">ERP</option>
+              <option value="HCM">HCM</option>
+              <option value="SCM">SCM</option>
+            </select>
+          </label>
+          <label>Pricing Metric
+            <select name="pricingMetric[]" required>
+              <option value="" selected disabled>Select a metric</option>
+              <option value="Hosted Named User">Hosted Named User</option>
+              <option value="Hosted Employee">Hosted Employee</option>
+            </select>
+          </label>
+          <label>FDI Users
+            <input name="fdiUsers[]" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g., 250" required />
+          </label>
+          <button class="remove" type="button" title="Remove row" aria-label="Remove this pillar row">×</button>
+        </section>
+      </template>
+      <template id="analytics-row-template">
+        <section class="analytics-row">
+          <label><strong>Operational Analytics Pillar</strong>
+            <select name="operationalAnalyticsPillar[]" required disabled></select>
+          </label>
+          <label>Pricing Metric
+            <select name="operationalAnalyticsMetric[]" required disabled></select>
+          </label>
+          <label>Op Analytics User Numbers
+            <input name="opAnalyticsUsers[]" type="number" min="0" step="1" inputmode="numeric" placeholder="e.g., 250" required disabled />
+          </label>
+          <button class="remove" type="button" title="Remove row" aria-label="Remove this Fusion Operational Analytics pillar row">×</button>
+        </section>
+      </template>
+      <dialog id="validation-modal" aria-labelledby="modal-title">
+        <div class="modal-content">
+          <h2 id="modal-title">FDI entry required</h2>
+          <ul id="modal-message"><li>Please complete at least one FDI pillar row before moving to Fusion Operational Analytics.</li></ul>
+          <button type="button" id="close-modal">OK</button>
+        </div>
+      </dialog>
+      <script>
+        const rows = document.querySelector('#rows');
+        const template = document.querySelector('#row-template');
+        const validationModal = document.querySelector('#validation-modal');
+        const fdiPillarOptions = ['CX', 'ERP', 'HCM', 'SCM'];
+        const addFdiRowButton = document.querySelector('#add-row');
+        const moveButton = document.querySelector('#move-to-analytics');
+        const validateButton = document.querySelector('#validate');
+        const clearFormButton = document.querySelector('#clear-form');
+        const addAnalyticsRowButton = document.querySelector('#add-analytics-row');
+        const analyticsRows = document.querySelector('#analytics-rows');
+        const analyticsTemplate = document.querySelector('#analytics-row-template');
+        const summary = document.querySelector('#summary');
+        const summaryList = document.querySelector('#summary-list');
+        const copySummaryButton = document.querySelector('#copy-summary');
+        const modalTitle = document.querySelector('#modal-title');
+        const modalMessage = document.querySelector('#modal-message');
+        const clearSummary = () => {
+          summaryList.replaceChildren();
+          summary.classList.remove('visible');
+        };
+        const copySummary = async () => {
+          const exportDate = new Intl.DateTimeFormat('en-US', {
+            month: 'long', day: 'numeric', year: 'numeric',
+          }).format(new Date());
+          const formSummary = [...summaryList.querySelectorAll('li')].map((item) => item.textContent).join('\n');
+          const summaryText = `Fusion Operational Analytics Pricing Worksheet\nPlease make sure this validated combination of new and former information is present in CPQ. Note: It is understood the actual pillars selected may not be apparent in CPQ.\n${exportDate}\n\n${formSummary}`;
+          try {
+            if (navigator.clipboard?.writeText) {
+              await navigator.clipboard.writeText(summaryText);
+            } else {
+              const copyField = document.createElement('textarea');
+              copyField.value = summaryText;
+              document.body.append(copyField);
+              copyField.select();
+              document.execCommand('copy');
+              copyField.remove();
+            }
+            copySummaryButton.textContent = 'Copied';
+          } catch {
+            copySummaryButton.textContent = 'Copy failed';
+          }
+          setTimeout(() => { copySummaryButton.textContent = 'Copy summary'; }, 2000);
+        };
+        const syncFdiPillars = () => {
+          const fdiRows = [...rows.querySelectorAll('.entry-row')];
+          fdiRows.forEach((fdiRow) => {
+            const pillarSelect = fdiRow.querySelector('[name="pillar[]"]');
+            const currentPillar = pillarSelect.value;
+            const otherSelectedPillars = fdiRows
+              .filter((row) => row !== fdiRow)
+              .map((row) => row.querySelector('[name="pillar[]"]').value)
+              .filter(Boolean);
+            const availablePillars = fdiPillarOptions.filter((pillar) => pillar === currentPillar || !otherSelectedPillars.includes(pillar));
+            pillarSelect.replaceChildren(new Option('Select a pillar', '', true, false));
+            availablePillars.forEach((pillar) => pillarSelect.add(new Option(pillar, pillar)));
+            pillarSelect.value = availablePillars.includes(currentPillar) ? currentPillar : '';
+          });
+          addFdiRowButton.hidden = fdiRows.length >= fdiPillarOptions.length;
+        };
+        const syncAnalyticsPillars = (analyticsRow) => {
+          const selectedPillars = [...new Set([...rows.querySelectorAll('.entry-row')]
+            .map((row) => row.querySelector('[name="pillar[]"]').value)
+            .filter(Boolean))];
+          const pillarSelect = analyticsRow.querySelector('[name="operationalAnalyticsPillar[]"]');
+          const currentPillar = pillarSelect.value;
+          const otherSelectedPillars = [...analyticsRows.querySelectorAll('.analytics-row')]
+            .filter((row) => row !== analyticsRow)
+            .map((row) => row.querySelector('[name="operationalAnalyticsPillar[]"]').value)
+            .filter(Boolean);
+          const availablePillars = selectedPillars.filter((pillar) => pillar === currentPillar || !otherSelectedPillars.includes(pillar));
+          pillarSelect.replaceChildren(new Option('Select a pillar', '', true, false));
+          availablePillars.forEach((selectedPillar) => pillarSelect.add(new Option(selectedPillar, selectedPillar)));
+          pillarSelect.value = availablePillars.includes(currentPillar) ? currentPillar : '';
+        };
+        const syncAnalyticsMetrics = (analyticsRow) => {
+          const selectedMetrics = [...new Set([...rows.querySelectorAll('.entry-row')]
+            .map((row) => row.querySelector('[name="pricingMetric[]"]').value)
+            .filter(Boolean))];
+          const selectedPillar = analyticsRow.querySelector('[name="operationalAnalyticsPillar[]"]').value;
+          const matchingFdiRow = [...rows.querySelectorAll('.entry-row')].find((row) =>
+            row.querySelector('[name="pillar[]"]').value === selectedPillar
+          );
+          const matchingFdiMetric = matchingFdiRow?.querySelector('[name="pricingMetric[]"]').value;
+          const allowedMetrics = matchingFdiMetric === 'Hosted Named User'
+            ? ['Hosted Named User']
+            : matchingFdiMetric === 'Hosted Employee'
+              ? ['Hosted Named User', 'Hosted Employee']
+              : selectedMetrics;
+          const metricSelect = analyticsRow.querySelector('[name="operationalAnalyticsMetric[]"]');
+          const currentMetric = metricSelect.value;
+          metricSelect.replaceChildren(new Option('Select a metric', '', true, false));
+          allowedMetrics.forEach((selectedMetric) => metricSelect.add(new Option(selectedMetric, selectedMetric)));
+          metricSelect.value = allowedMetrics.includes(currentMetric) ? currentMetric : '';
+        };
+        const syncAnalyticsRows = () => {
+          const selectedFdiPillars = new Set([...rows.querySelectorAll('[name="pillar[]"]')]
+            .map((select) => select.value)
+            .filter(Boolean));
+          analyticsRows.querySelectorAll('.analytics-row').forEach((row) => {
+            syncAnalyticsPillars(row);
+            syncAnalyticsMetrics(row);
+          });
+          const noAnalyticsPillarsRemain = analyticsRows.querySelectorAll('.analytics-row').length >= selectedFdiPillars.size;
+          addAnalyticsRowButton.disabled = noAnalyticsPillarsRemain;
+          addAnalyticsRowButton.hidden = noAnalyticsPillarsRemain;
+        };
+        const showError = (message) => {
+          modalTitle.textContent = 'Validation error';
+          const errors = Array.isArray(message) ? message : [message];
+          modalMessage.replaceChildren(...errors.map((error) => {
+            const item = document.createElement('li');
+            item.textContent = error;
+            return item;
+          }));
+          validationModal.showModal();
+        };
+        const addRow = () => {
+          const row = template.content.cloneNode(true);
+          row.querySelector('.remove').addEventListener('click', (event) => {
+            event.currentTarget.closest('.entry-row').remove();
+            syncFdiPillars();
+            syncAnalyticsRows();
+          });
+          rows.append(row);
+          syncFdiPillars();
+        };
+        const addAnalyticsRow = () => {
+          const analyticsRow = analyticsTemplate.content.cloneNode(true);
+          const rowElement = analyticsRow.querySelector('.analytics-row');
+          rowElement.querySelector('.remove').addEventListener('click', (event) => {
+            event.currentTarget.closest('.analytics-row').remove();
+            syncAnalyticsRows();
+          });
+          analyticsRows.append(analyticsRow);
+          syncAnalyticsRows();
+          if (document.querySelector('#analytics-section').classList.contains('visible')) {
+            rowElement.querySelectorAll('select, input').forEach((field) => { field.disabled = false; });
+          }
+        };
+        document.querySelector('#add-row').addEventListener('click', addRow);
+        addAnalyticsRowButton.addEventListener('click', addAnalyticsRow);
+        moveButton.addEventListener('click', (event) => {
+          const fdiRows = [...rows.querySelectorAll('.entry-row')];
+          const hasCompletedRow = fdiRows.some((row) => {
+            const pillar = row.querySelector('[name="pillar[]"]').value;
+            const metric = row.querySelector('[name="pricingMetric[]"]').value;
+            const users = row.querySelector('[name="fdiUsers[]"]').value;
+            return pillar && metric && users !== '';
+          });
+
+          if (!hasCompletedRow) {
+            showError('Please complete at least one FDI pillar row before moving to Fusion Operational Analytics.');
+            return;
+          }
+
+          const fdiErrors = [];
+          fdiRows.forEach((row, index) => {
+            const metric = row.querySelector('[name="pricingMetric[]"]').value;
+            const users = Number(row.querySelector('[name="fdiUsers[]"]').value);
+            if (metric === 'Hosted Named User' && users < 10) {
+              fdiErrors.push(`FDI row ${index + 1}: Hosted Named User must be at least 10.`);
+            }
+            if (metric === 'Hosted Employee' && users < 1000) {
+              fdiErrors.push(`FDI row ${index + 1}: Hosted Employee must be at least 1000.`);
+            }
+          });
+          if (fdiErrors.length) {
+            showError(fdiErrors);
+            return;
+          }
+
+          const analytics = document.querySelector('#analytics-section');
+          if (analytics.classList.contains('visible')) {
+            analyticsRows.replaceChildren();
+            addAnalyticsRow();
+            clearSummary();
+          }
+          syncAnalyticsRows();
+          analytics.classList.add('visible');
+          analyticsRows.querySelectorAll('select, input').forEach((field) => { field.disabled = false; });
+        });
+        document.querySelector('#fdi-form').addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' && event.target.closest('.entry-row')) {
+            event.preventDefault();
+            moveButton.click();
+          }
+        });
+        rows.addEventListener('change', () => {
+          syncFdiPillars();
+          if (document.querySelector('#analytics-section').classList.contains('visible')) {
+            syncAnalyticsRows();
+          }
+        });
+        analyticsRows.addEventListener('change', syncAnalyticsRows);
+        validateButton.addEventListener('click', () => {
+          const analyticsEntries = [...analyticsRows.querySelectorAll('.analytics-row')].map((row) => ({
+            pillar: row.querySelector('[name="operationalAnalyticsPillar[]"]').value,
+            metric: row.querySelector('[name="operationalAnalyticsMetric[]"]').value,
+            users: Number(row.querySelector('[name="opAnalyticsUsers[]"]').value),
+            usersValue: row.querySelector('[name="opAnalyticsUsers[]"]').value,
+          }));
+          if (!analyticsEntries.length || analyticsEntries.some(({ pillar, metric, usersValue }) => !pillar || !metric || usersValue === '')) {
+            clearSummary();
+            showError('Please complete every Fusion Operational Analytics row by selecting a pillar and pricing metric, then entering the Op Analytics User Numbers.');
+            return;
+          }
+
+          const completedFdiRows = [...rows.querySelectorAll('.entry-row')].filter((row) =>
+            row.querySelector('[name="pillar[]"]').value &&
+            row.querySelector('[name="pricingMetric[]"]').value &&
+            row.querySelector('[name="fdiUsers[]"]').value !== ''
+          );
+          const fdiEntries = completedFdiRows.map((row) => ({
+            pillar: row.querySelector('[name="pillar[]"]').value,
+            metric: row.querySelector('[name="pricingMetric[]"]').value,
+            users: Number(row.querySelector('[name="fdiUsers[]"]').value),
+          }));
+          const analyticsErrors = [];
+
+          if (fdiEntries.some(({ metric, users }) => metric === 'Hosted Named User' && users < 10)) {
+            analyticsErrors.push('FDI Base Hosted Named User must be at least 10 users.');
+          }
+          if (fdiEntries.some(({ metric, users }) => metric === 'Hosted Employee' && users < 1000)) {
+            analyticsErrors.push('FDI Base Hosted Employee must be at least 1,000 users.');
+          }
+
+          if (analyticsEntries.some(({ pillar, metric }) =>
+            fdiEntries.some((entry) => entry.pillar === pillar && entry.metric === 'Hosted Named User') &&
+            metric !== 'Hosted Named User'
+          )) {
+            analyticsErrors.push('Fusion Operational Analytics must use Hosted Named User for pillars that use Hosted Named User in FDI Base.');
+          }
+          if (analyticsEntries.some(({ metric, users }) => metric === 'Hosted Named User' && users < 35)) {
+            analyticsErrors.push('Fusion Operational Analytics Hosted Named User must be at least 35 users.');
+          }
+          if (analyticsEntries.some(({ pillar, metric, users }) => {
+            const matchingFdiEntry = fdiEntries.find((entry) => entry.pillar === pillar);
+            return metric === 'Hosted Named User' && matchingFdiEntry?.metric === 'Hosted Named User' && users > matchingFdiEntry.users;
+          })) {
+            analyticsErrors.push('Fusion Operational Analytics Hosted Named User cannot exceed the Hosted Named User quantity for its FDI Base pillar.');
+          }
+          if (analyticsEntries.some(({ pillar, metric, users }) => {
+            const matchingFdiEntry = fdiEntries.find((entry) => entry.pillar === pillar);
+            return metric === 'Hosted Named User' && matchingFdiEntry?.metric === 'Hosted Employee' && users > matchingFdiEntry.users;
+          })) {
+            analyticsErrors.push('Fusion Operational Analytics Hosted Named User cannot exceed the Hosted Employee quantity for its FDI Base pillar.');
+          }
+          if (analyticsEntries.some(({ metric, users }) => metric === 'Hosted Employee' && users < 1200)) {
+            analyticsErrors.push('Fusion Operational Analytics Hosted Employee must be at least 1200 users.');
+          }
+          if (analyticsEntries.some(({ pillar, metric, users }) => {
+            const matchingFdiEntry = fdiEntries.find((entry) => entry.pillar === pillar);
+            return metric === 'Hosted Employee' && matchingFdiEntry?.metric === 'Hosted Employee' && users !== matchingFdiEntry.users;
+          })) {
+            analyticsErrors.push('Fusion Operational Analytics Hosted Employee must match the Hosted Employee user number for its FDI Base pillar.');
+          }
+
+          if (analyticsErrors.length) {
+            clearSummary();
+            showError(analyticsErrors);
+            return;
+          }
+
+          summaryList.replaceChildren();
+          completedFdiRows.forEach((row) => {
+            const item = document.createElement('li');
+            const label = document.createElement('strong');
+            label.textContent = 'FDI Base';
+            item.append(label, `: ${row.querySelector('[name="pillar[]"]').value} — ${row.querySelector('[name="pricingMetric[]"]').value}, ${row.querySelector('[name="fdiUsers[]"]').value} users`);
+            summaryList.append(item);
+          });
+          summaryList.lastElementChild?.classList.add('fdi-summary-end');
+          analyticsEntries.forEach(({ pillar, metric, users }) => {
+            const analyticsItem = document.createElement('li');
+            const label = document.createElement('strong');
+            label.textContent = 'Fusion Operational Analytics';
+            analyticsItem.append(label, `: ${pillar} — ${metric}, ${users} users`);
+            summaryList.append(analyticsItem);
+          });
+          summaryList.lastElementChild?.classList.add('analytics-summary-end');
+          summary.classList.add('visible');
+        });
+        clearFormButton.addEventListener('click', () => {
+          rows.replaceChildren();
+          addRow();
+          analyticsRows.replaceChildren();
+          addAnalyticsRow();
+          document.querySelector('#analytics-section').classList.remove('visible');
+          syncAnalyticsRows();
+          analyticsRows.querySelectorAll('select, input').forEach((field) => { field.disabled = true; });
+          moveButton.disabled = false;
+          moveButton.textContent = 'Use these values to select Fusion Operational Analytics';
+          clearSummary();
+          validationModal.close();
+        });
+        copySummaryButton.addEventListener('click', copySummary);
+        document.querySelector('#analytics-section').addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            event.preventDefault();
+            validateButton.click();
+          }
+        });
+        document.querySelector('#close-modal').addEventListener('click', () => validationModal.close());
+        addRow();
+        addAnalyticsRow();
+      </script>
+    </main>
+    <aside class="rules" aria-labelledby="rules-title">
+      <h2 id="rules-title">Pricing rules</h2>
+      <ul>
+        <li>Eligible pillars: CX, ERP, HCM, and SCM. Fusion Operational Analytics requires the matching FDI Base pillar. You may purchase it for any subset of your FDI Base pillars.</li>
+        <li>FDI Base minimum per pillar: <strong>10</strong> Hosted Named Users or <strong>1,000</strong> Hosted Employees. Minimums and quantity limits apply separately to each pillar, not to combined totals.</li>
+        <li>FDI Base Hosted Named User requires Fusion Operational Analytics Hosted Named User. FDI Base Hosted Employee allows either Hosted Named User or Hosted Employee for Fusion Operational Analytics.</li>
+        <li>Fusion Operational Analytics Hosted Named User: minimum <strong>35</strong> per pillar; cannot exceed the matching FDI Base quantity under either metric. FDI Base quantities below <strong>35</strong> cannot support this option.</li>
+        <li>Fusion Operational Analytics Hosted Employee: minimum <strong>1,200</strong> per pillar; quantity must equal the matching FDI Base Hosted Employee quantity. Both conditions apply, so that FDI Base quantity must also be at least <strong>1,200</strong>.</li>
+      </ul>
+    </aside>
+    </div>
+  </body>
+</html>
